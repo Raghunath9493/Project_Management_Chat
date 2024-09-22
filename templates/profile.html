@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="/static/css/budgetform.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="/static/images/wallet.png" alt="Personal Budget Logo">
+                <h1>Personal Budget</h1>
+            </div>
+            <ul class="nav-items">
+                <li><a href="{{ url_for('dashboard') }}">Budget Summary</a></li>
+                <li><a href="{{ url_for('budget_form') }}">Budget Form</a></li>
+                <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+                <li><a href="{{ url_for('profile') }}" class="active">Profile</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <div class="header">
+                <button id="sidebar-menu-button"><span class="menu-icon">☰</span></button>
+                <h2>Profile</h2>
+                <div class="logout-button">
+                    <button id="logout-btn">Logout</button>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <form id="profileForm">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                    <br>
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                    <br>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                    <br>
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="number" id="phoneNumber" name="phoneNumber" required>
+                    <br>
+                    <button type="submit">Save</button>
+                </form>
+                <div id="errors"></div>
+                <div id="summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/get_profile');
+                const data = await response.json();
+
+                document.getElementById('firstName').value = data.firstName || '';
+                document.getElementById('lastName').value = data.lastName || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('phoneNumber').value = data.phoneNumber || '';
+            } catch (error) {
+                console.error('Error fetching profile data:', error);
+            }
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', async function(event) {
+            event.preventDefault();  // Prevent form from submitting normally
+
+            const formData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phoneNumber: document.getElementById('phoneNumber').value
+            };
+
+            try {
+                const response = await fetch('/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}` // Include JWT token
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('summary').innerText = "Profile data saved successfully!";
+                    document.getElementById('errors').innerText = '';
+                } else {
+                    document.getElementById('errors').innerText = result.error || 'An error occurred. Please try again.';
+                    document.getElementById('summary').innerText = '';
+                }
+            } catch (error) {
+                document.getElementById('errors').innerText = 'An error occurred. Please try again.';
+                document.getElementById('summary').innerText = '';
+            }
+        });
+
+        const sidebarMenuBtn = document.getElementById('sidebar-menu-button');
+        const sidebar = document.querySelector('.sidebar');
+        const content = document.querySelector('.content');
+
+        sidebarMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            content.classList.toggle('sidebar-active');
+        });
+
+        $(document).ready(function () {
+            $('#logout-btn').click(function () {
+                $.get('/logout', function (response) {
+                    alert(response.message); 
+                    window.location.href = '/';
+                }).fail(function () {
+                    alert('Logout failed. Please try again.');
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

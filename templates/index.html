@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/individual/home.css">
+    <title>Home Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <img src="/static/images/wallet.png" alt="Personal Budget Logo">
+            <h1>Personal Budget</h1>
+        </div>
+        <nav>
+            <ul>
+                <li class="auth-buttons"><button class="auth-button" id="home-btn">Home</button></li>
+                <li class="auth-buttons">
+                    <button class="auth-button" id="login-btn">Log in</button>
+                    <button class="auth-button" id="signup-btn">Sign up</button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <div class="container" id="main-content">
+        <img src="/static/images/wallet.png" alt="Wallet Icon">
+        <h1>PERSONAL BUDGET</h1>
+        <h2>Expense Manager</h2>
+        <p>Manage your personal finances and easily track your money, expenses and budget</p>
+        <p>Try the web app today</p>
+    </div>
+
+    <div class="container" id="login-form-container" style="display: none;">
+        <h2>Login</h2>
+        <form id="login-form" method="POST">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="email" id="login-email" name="email" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="login-password" name="password" placeholder="Password" required>
+            </div>
+            <button type="submit">Login</button>
+            <button id="register-btn" type="button">Register</button>
+            <button id="forgot-password-btn" type="button" class="forgot-password-btn">Forgot Password?</button>
+        </form>
+    </div>
+
+    <div class="container" id="registration-form-container" style="display: none;">
+        <h2>Registration</h2>
+        <form id="registration-form" method="POST">
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" name="email" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" name="nickname" placeholder="Your Nickname" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-utensils"></i>
+                <input type="text" name="favorite_food" placeholder="Favorite Food" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-film"></i>
+                <input type="text" name="favorite_movie" placeholder="Favorite Movie" required>
+            </div>
+            <button type="submit">SIGN UP</button>
+        </form>
+    </div>
+
+    <div class="container" id="forgot-password-container" style="display: none;">
+        <h2>Forgot Password</h2>
+        <form id="forgot-password-form" method="POST">
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="forgot-password-email" name="email" placeholder="Email" required>
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#login-btn').click(function() {
+                $('#main-content').hide();
+                $('#registration-form-container').hide();
+                $('#forgot-password-container').hide();
+                $('#login-form-container').fadeIn();
+            });
+            $('#signup-btn').click(function() {
+                $('#main-content').hide();
+                $('#login-form-container').hide();
+                $('#forgot-password-container').hide();
+                $('#registration-form-container').fadeIn();
+            });
+            $('#register-btn').click(function() {
+                $('#main-content').hide();
+                $('#login-form-container').hide();
+                $('#forgot-password-container').hide();
+                $('#registration-form-container').fadeIn();
+            });
+            $('#home-btn').click(function() {
+                $('#login-form-container').hide();
+                $('#registration-form-container').hide();
+                $('#forgot-password-container').hide();
+                $('#main-content').fadeIn();
+            });
+            $('#forgot-password-btn').click(function() {
+                $('#main-content').hide();
+                $('#login-form-container').hide();
+                $('#registration-form-container').hide();
+                $('#forgot-password-container').fadeIn();
+            });
+
+            $('#forgot-password-form').submit(function(event) {
+                event.preventDefault();
+
+                const formData = {
+                    email: $('#forgot-password-email').val() // Adjust selector if needed
+                };
+
+                $.ajax({
+                    url: '/forgot_password',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        alert(response.message);
+                        if (response.message === "Password reset email sent") {
+                            $('#main-content').hide();
+                            $('#forgot-password-container').hide();
+                            $('#login-form-container').fadeIn();
+                        }
+                    },
+                    error: function(response) {
+                        alert(response.responseJSON.error);
+                    }
+                });
+            });
+
+
+            $('#registration-form').submit(function(event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+
+                $.post('/register', formData, function(response) {
+                    alert(response.message);
+                    if (response.message === "Registration successful") {
+                        $('#main-content').hide();
+                        $('#registration-form-container').hide();
+                        $('#login-form-container').fadeIn();
+                    }
+                }).fail(function(response) {
+                    alert(response.responseJSON.error);
+                });
+            });
+
+            $('#login-form').submit(function(event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+
+                $.post('/login', formData, function(response) {
+                    alert(response.message);
+                    if (response.message === "Login successful") {
+                        window.location.href = '/dashboard';
+                    }
+                }).fail(function(response) {
+                    alert(response.responseJSON.error);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

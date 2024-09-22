@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/budgetform.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="/static/images/wallet.png" alt="Personal Budget Logo">
+                <h1>Personal Budget</h1>
+            </div>
+            <ul class="nav-items">
+                <li><a href="{{ url_for('dashboard') }}">Budget Summary</a></li>
+                <li><a href="{{ url_for('budget_form') }}" class="active">Budget Form</a></li>
+                <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+                <li><a href="{{ url_for('profile') }}">Profile</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <div class="header">
+                <button id="sidebar-menu-button"><span class="menu-icon">☰</span></button>
+                <h2>Budget Form</h2>
+                <div class="logout-button">
+                    <button id="logout-btn">Logout</button>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <form id="budgetForm">
+                    <label for="primaryIncome">Primary Income *</label>
+                    <input type="number" id="primaryIncome" name="primaryIncome" required>
+                    <br>
+                    <label for="otherIncome">Other Income *</label>
+                    <input type="number" id="otherIncome" name="otherIncome" required>
+                    <br>
+                    <label for="housing">Housing *</label>
+                    <input type="number" id="housing" name="housing" required>
+                    <br>
+                    <label for="groceries">Groceries *</label>
+                    <input type="number" id="groceries" name="groceries" required>
+                    <br>
+                    <label for="shopping">Shopping *</label>
+                    <input type="number" id="shopping" name="shopping" required>
+                    <br>
+                    <label for="transportation">Transportation *</label>
+                    <input type="number" id="transportation" name="transportation" required>
+                    <br>
+                    <label for="bills">Bills *</label>
+                    <input type="number" id="bills" name="bills" required>
+                    <br>
+                    <label for="entertainment">Entertainment *</label>
+                    <input type="number" id="entertainment" name="entertainment" required>
+                    <br>
+                    <label for="education">Education *</label>
+                    <input type="number" id="education" name="education" required>
+                    <br>
+                    <label for="savings">Savings *</label>
+                    <input type="number" id="savings" name="savings" required>
+                    <br>
+                    <label for="debt">Debt *</label>
+                    <input type="number" id="debt" name="debt" required>
+                    <br>
+                    <label for="debtBalance">Debt Balance *</label>
+                    <input type="number" id="debtBalance" name="debtBalance" required>
+                    <br>
+                    <label for="savingsBalance">Savings Balance *</label>
+                    <input type="number" id="savingsBalance" name="savingsBalance" required>
+                    <br>
+                    <button type="submit">Submit</button>
+                </form>
+                <div id="errors"></div>
+                <div id="summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebarMenuBtn = document.getElementById('sidebar-menu-button');
+        const sidebar = document.querySelector('.sidebar');
+        const content = document.querySelector('.content');
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/api/budget_data', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}` // Include JWT token if needed
+                    }
+                });
+
+                if (response.ok) {
+                    const budgetData = await response.json();
+                    document.getElementById('primaryIncome').value = budgetData.primary_income || '';
+                    document.getElementById('otherIncome').value = budgetData.other_income || '';
+                    document.getElementById('housing').value = budgetData.housing || '';
+                    document.getElementById('groceries').value = budgetData.groceries || '';
+                    document.getElementById('shopping').value = budgetData.shopping || '';
+                    document.getElementById('transportation').value = budgetData.transportation || '';
+                    document.getElementById('bills').value = budgetData.bills || '';
+                    document.getElementById('entertainment').value = budgetData.entertainment || '';
+                    document.getElementById('education').value = budgetData.education || '';
+                    document.getElementById('savings').value = budgetData.savings || '';
+                    document.getElementById('debt').value = budgetData.debt || '';
+                    document.getElementById('debtBalance').value = budgetData.debt_balance || '';
+                    document.getElementById('savingsBalance').value = budgetData.savings_balance || '';
+                } else {
+                    console.error('Failed to fetch budget data');
+                }
+            } catch (error) {
+                console.error('An error occurred while fetching budget data:', error);
+            }
+        });
+
+        sidebarMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            content.classList.toggle('sidebar-active');
+        });
+
+        $(document).ready(function () {
+            $('#logout-btn').click(function () {
+                $.get('/logout', function (response) {
+                    alert(response.message); 
+                    window.location.href = '/';
+                }).fail(function () {
+                    alert('Logout failed. Please try again.');
+                });
+            });
+        });
+
+        document.getElementById('budgetForm').addEventListener('submit', async function(event) {
+            event.preventDefault();  // Prevent form from submitting normally
+
+            const formData = {
+                primaryIncome: document.getElementById('primaryIncome').value,
+                otherIncome: document.getElementById('otherIncome').value,
+                housing: document.getElementById('housing').value,
+                groceries: document.getElementById('groceries').value,
+                shopping: document.getElementById('shopping').value,
+                transportation: document.getElementById('transportation').value,
+                bills: document.getElementById('bills').value,
+                entertainment: document.getElementById('entertainment').value,
+                education: document.getElementById('education').value,
+                savings: document.getElementById('savings').value,
+                debt: document.getElementById('debt').value,
+                debtBalance: document.getElementById('debtBalance').value,
+                savingsBalance: document.getElementById('savingsBalance').value
+            };
+
+            console.log(formData);
+
+            try {
+                const response = await fetch('/api/budget_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}` // Include JWT token
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('summary').innerText = "Budget data saved successfully!";
+                    document.getElementById('errors').innerText = '';
+                    window.location.href = '/dashboard';  // Navigate to the dashboard page
+                } else {
+                    document.getElementById('errors').innerText = result.error || 'An error occurred. Please try again.';
+                    document.getElementById('summary').innerText = '';
+                }
+            } catch (error) {
+                document.getElementById('errors').innerText = 'An error occurred. Please try again.';
+                document.getElementById('summary').innerText = '';
+            }
+        });
+    </script>
+
+</body>
+
+</html>

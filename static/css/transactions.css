@@ -1,0 +1,133 @@
+/* Budget form styles */
+
+.budget-form-section {
+    background-color: #FFFFFF;
+    color: #000000;
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.budget-form-section h2 {
+    color: #007BFF;
+    margin-bottom: 20px;
+}
+
+.budget-form-section form {
+    display: flex;
+    flex-direction: column;
+}
+
+.budget-form-section label {
+    font-size: 16px;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+.budget-form-section input,
+.budget-form-section select {
+    padding: 10px;
+    border: 1px solid #CCCCCC;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+
+.budget-form-section input[type="date"] {
+    max-width: 200px;
+}
+
+.budget-form-section button {
+    background-color: #007BFF;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.budget-form-section button:hover {
+    background-color: #0056b3;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* CSS for the transaction list section */
+#transaction-list-section {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#transaction-list-section h2 {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+#transaction-list-section h2 .transaction-count {
+    font-size: 1.2em;
+    color: #333;
+}
+
+#transaction-list-section h2 .total-amount {
+    font-size: 1.2em;
+    color: #28a745;
+}
+
+#transaction-list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#transaction-list tbody tr {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+#transaction-list tbody tr:last-child {
+    border-bottom: none;
+}
+
+#transaction-list td {
+    padding: 10px;
+    vertical-align: middle;
+}
+
+#transaction-list td img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+#transaction-list .transaction-description {
+    align-items: center;
+}
+
+#transaction-list .transaction-description .category {
+    font-weight: bold;
+}
+
+#transaction-list .transaction-amount {
+    color: #dc3545; /* Color for negative amount */
+    font-weight: bold;
+}
+
+#transaction-list .transaction-date {
+    color: #666;
+    font-size: 0.9em;
+}
+
+#transaction-list .transaction-menu {
+    cursor: pointer;
+    color: #999;
+}
+
+#transaction-list .transaction-menu:hover {
+    color: #333;
+}
