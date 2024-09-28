@@ -22,7 +22,6 @@ class ProductionConfig(Config):
 
 # Select the appropriate configuration based on the environment variable
 config_name = os.getenv('FLASK_CONFIG', 'DevelopmentConfig')
-=======
 import os
 
 class Config:
