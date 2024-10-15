@@ -12,3 +12,5 @@ mongoengine==0.28.2
 flask-bcrypt
 pymongo
 pytest
+flask_socketio
+python-dotenv

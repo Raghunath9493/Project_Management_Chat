@@ -5,10 +5,10 @@ import os
 import uuid
 from flask import render_template, request, jsonify, redirect, url_for, session
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from pymongo import MongoClient
 from email_utils import send_email  # Import the send_email function
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
 from bson import ObjectId
 
@@ -360,25 +360,45 @@ def register_routes(app):
     @app.route('/api/send_message', methods=['POST'])
     @jwt_required()  # Ensure the user is authenticated
     def send_message():
-        """Send a message from one user to another."""
-        data = request.json
-        sender = data.get('sender')
-        receiver = data.get('receiver')
-        message_text = data.get('message')
+        def get_user_notification_preference(email):
+    # Retrieve notification preference from the database or user profile
+    # ... implementation details ...
+            return "websocket"  # Placeholder, replace with actual implementation
+        def send_push_notification(recipient_email, message):
 
-        if not sender or not receiver or not message_text:
-            return jsonify({"error": "Missing data"}), 400
+            def send_websocket_notification(recipient_email, message):
 
-        message = {
-            "sender": sender,
-            "receiver": receiver,
-            "message": message_text,
-            "timestamp": datetime.utcnow()
-            }
+                
+                """Send a message from one user to another."""
+                data = request.json
+                sender = data.get('sender')
+                receiver = data.get('receiver')
+                message_text = data.get('message')
 
-        # Store the message in the database
-        db.messages.insert_one(message)
-        return jsonify({"message": "Message sent!"}), 200
+                recipient_email = data.get('receiver')
+                notification_preference = get_user_notification_preference(recipient_email)
+
+                
+                message = {
+                    "sender": sender,
+                    "receiver": receiver,
+                    "message": message_text,
+                    "timestamp": datetime.utcnow()
+                    }
+
+                # Store the message in the database
+                db.messages.insert_one(message)
+                # Send notification based on preference
+                if notification_preference == "websocket":
+                    send_websocket_notification(recipient_email, message)
+                elif notification_preference == "push":
+                    send_push_notification(recipient_email, message)
+                else:
+                    # Handle other preferences or no preference
+                    pass
+
+                return jsonify({"message": "Message sent!"}), 200
+        
 
     @app.route('/api/get_messages', methods=['GET'])
     @jwt_required()
