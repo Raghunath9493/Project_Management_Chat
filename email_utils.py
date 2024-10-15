@@ -7,8 +7,8 @@ from email.mime.multipart import MIMEMultipart
 def send_email(subject, content, to_email):
     HOST = "smtp-mail.outlook.com"
     PORT = 587
-    FROM_EMAIL = ""  # Replace with your email address
-    PASSWORD = ""
+    FROM_EMAIL = "Kunigiriraghunath9493@gmail.com"  # Replace with your email address
+    PASSWORD = "Kunioutlook@1998"
 
     # Create the email content
     message = MIMEMultipart()

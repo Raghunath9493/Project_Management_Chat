@@ -7,6 +7,7 @@ from routes.routes import register_routes
 
 def create_app():
     app = Flask(__name__)
+    jwt = JWTManager(app)
 
     # Load configuration
     config_name = os.getenv('FLASK_CONFIG', 'DevelopmentConfig')
