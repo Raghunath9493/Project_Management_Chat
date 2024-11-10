@@ -3,12 +3,12 @@
 import sys
 import os
 import uuid
-from flask import render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from pymongo import MongoClient
 from email_utils import send_email  # Import the send_email function
-from datetime import timedelta, datetime
+from datetime import datetime
 import json
 from bson import ObjectId
 
@@ -337,6 +337,10 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
+    @app.route('/chat')
+    def chat():
+        return render_template('Chat.html')
+
     # ChatBot Search
     @app.route('/api/search_users', methods=['GET'])
     @jwt_required(optional=True)
@@ -404,10 +408,26 @@ def register_routes(app):
     @jwt_required()
     def get_messages():
         """Get messages for a specific user."""
-        current_user = get_jwt_identity()  # Get the user from the token
-        messages = list(db.messages.find({"$or": [{"sender": current_user}, {"receiver": current_user}]}))
-        
-        # Format messages for response (removing _id and other unwanted fields)
-        formatted_messages = [{"sender": msg["sender"], "receiver": msg["receiver"], "message": msg["message"], "timestamp": msg["timestamp"]} for msg in messages]
-        
-        return jsonify(formatted_messages), 200
+        current_user = get_jwt_identity()
+        if not current_user:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        try:
+            messages = list(db.messages.find({
+                "$or": [{"sender": current_user}, {"receiver": current_user}]
+            }))
+
+            # Format messages for response (removing _id and other unwanted fields)
+            formatted_messages = [
+                {
+                    "sender": msg["sender"],
+                    "receiver": msg["receiver"],
+                    "message": msg["message"],
+                    "timestamp": msg["timestamp"].isoformat()
+                }
+                for msg in messages
+            ]
+
+            return jsonify(formatted_messages), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

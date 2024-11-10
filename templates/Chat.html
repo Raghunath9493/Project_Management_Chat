@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Chat.css') }}">
+    <script src="{{ url_for('static', filename='js/Chatbot.js') }}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="chatbot-icon" id="chatbot-icon">
+        <img src="{{ url_for('static', filename='images/chatbot.png') }}" alt="Chatbot Icon" />
+    </div>
+    <div class="chatbot-container" id="chatbot-container">
+        <div class="chatbot-header">
+            <h4>Chatbot</h4>
+        </div>
+        <div class="user-search">
+            <input type="text" id="user-search-input" placeholder="Search users...">
+            <button id="search-user-button">Search</button>
+        </div>
+        <div class="user-list" id="user-list"></div>
+        <div class="chatbot-messages" id="chatbot-messages"></div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input" placeholder="Type a message..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/Chatbot.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Your chatbot functionality code here
+
+            const chatbotIcon = document.getElementById('chatbot-icon');
+            const chatbotContainer = document.getElementById('chatbot-container');
+            const sendButton = document.getElementById('send-button');
+            const messagesContainer = document.getElementById('chatbot-messages');
+            const inputField = document.getElementById('chatbot-input');
+            const userSearchInput = document.getElementById('user-search-input');
+            const userList = document.getElementById('user-list');
+
+            // Toggle chatbot visibility
+            chatbotIcon.addEventListener('click', function() {
+                console.log('Chatbot icon clicked'); // Debugging log
+                chatbotContainer.style.display = chatbotContainer.style.display === 'block' ? 'none' : 'block';
+                inputField.focus();
+                userList.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+
+</html>
