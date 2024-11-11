@@ -23,7 +23,8 @@
                 <li><a href="{{ url_for('budget_form') }}">Budget Form</a></li>
                 <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
                 <li><a href="{{ url_for('profile') }}">Profile</a></li>
-            </ul>
+                <li><a href="{{ url_for('chats') }}">Chats</a></li> 
+            </ul>            
         </div>
 
         <div class="content">
@@ -137,9 +138,300 @@
                     }
                 }
                 console.log(data);
-                // Extract relevant data for the pie chart and other charts...
+                // Extract relevant data for the pie chart
+                const labels = ['Housing', 'Groceries', 'Shopping', 'Transportation', 'Bills', 'Entertainment', 'Education', 'Savings', 'Debt'];
+                const values = [
+                    data.housing,
+                    data.groceries,
+                    data.shopping,
+                    data.transportation,
+                    data.bills,
+                    data.entertainment,
+                    data.education,
+                    data.savings,
+                    data.debt
+                ];
 
-                // Your existing chart code will be here...
+                // Create the pie chart
+                const ctx = document.getElementById('myPieChart').getContext('2d');
+                const myPieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Monthly Expenses',
+                            data: values,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(199, 199, 199, 1)',
+                                'rgba(83, 102, 255, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(199, 199, 199, 1)',
+                                'rgba(83, 102, 255, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.label + ': $' + tooltipItem.raw;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+
+                // SAVINGS PROJECTIONS
+
+                // Set the initial value of the monthly contributions input
+                document.getElementById('monthly-contributions').value = data.savings;
+
+                // Function to update the savings chart
+                function updateSavingsChart() {
+                    const monthlyContributions = parseFloat(document.getElementById('monthly-contributions').value);
+                    const projectionPeriod = parseInt(document.getElementById('projection-period').value);
+                    const months = Array.from({ length: projectionPeriod }, (_, i) => `Month ${i + 1}`);
+                    const savingsData = [];
+                    let currentBalance = data.savings_balance;
+                    for (let i = 0; i < projectionPeriod; i++) {
+                        currentBalance += monthlyContributions;
+                        savingsData.push(currentBalance);
+                    }
+
+                    savingsChart.data.labels = months;
+                    savingsChart.data.datasets[0].data = savingsData;
+                    savingsChart.update();
+                }
+
+                // Create the savings calculator line chart
+                const savingsCtx = document.getElementById('savings-calculator').getContext('2d');
+                const savingsChart = new Chart(savingsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 12 }, (_, i) => `Month ${i + 1}`),
+                        datasets: [{
+                            label: 'Savings Over Time',
+                            data: [],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return 'Month ' + (tooltipItem.dataIndex + 1) + ': $' + tooltipItem.raw.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Balance ($)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        }
+                    }
+
+                });
+
+                // Initial update of the savings chart
+                updateSavingsChart();
+
+                // Add event listeners to update the chart dynamically
+                document.getElementById('monthly-contributions').addEventListener('input', updateSavingsChart);
+                document.getElementById('projection-period').addEventListener('change', updateSavingsChart);
+
+                // SUMMARY BAR CHART
+                const fixedExpenses = data.housing + data.bills + data.education + data.debt;
+                const variableExpenses = data.groceries + data.shopping + data.transportation + data.entertainment;
+                const totalExpenses = fixedExpenses + variableExpenses;
+                const monthlyIncome = data.primary_income + data.other_income;
+                const netBalance = monthlyIncome - totalExpenses;
+
+                const summaryElement = document.getElementById('budgetSummaryChart').getContext('2d');
+                new Chart(summaryElement, {
+                    type: 'bar', // Use 'bar' type and set indexAxis to 'y' for horizontal bars
+                    data: {
+                        labels: ['Expenses', 'Income'],
+                        datasets: [
+                            {
+                                label: 'Fixed Expenses',
+                                data: [fixedExpenses, 0],
+                                backgroundColor: '#FF6384',
+                                borderColor: '#FF6384',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Variable Expenses',
+                                data: [variableExpenses, 0],
+                                backgroundColor: '#36A2EB',
+                                borderColor: '#36A2EB',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Primary Income',
+                                data: [0, data.primary_income],
+                                backgroundColor: '#FFCE56',
+                                borderColor: '#FFCE56',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Other Income',
+                                data: [0, data.other_income],
+                                backgroundColor: '#4BC0C0',
+                                borderColor: '#4BC0C0',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y', // This makes the bars horizontal
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                stacked: true
+                            },
+                            y: {
+                                stacked: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Monthly Budget Summary'
+                            }
+                        }
+                    }
+                });
+
+                const summaryTextDiv = document.getElementById('summaryText');
+                summaryTextDiv.innerHTML = `
+                    <p><strong>Total Income:</strong> ${monthlyIncome}</p>
+                    <p><strong>Total Expenses:</strong> ${totalExpenses}</p>
+                    <hr>
+                    <p><strong>Net Balance:</strong> ${netBalance}</p>
+                `;
+
+                // DEBT PAYOFF PROJECTIONS
+
+                // Set the initial value of the monthly payoff input
+                document.getElementById('monthly-payment').value = data.debt;
+
+                // Function to update the debt chart
+                function updateDebtChart() {
+                    const monthlyPayoff = parseFloat(document.getElementById('monthly-payment').value);
+                    const payoffPeriod = parseInt(document.getElementById('payoff-period').value);
+                    const months = Array.from({ length: payoffPeriod }, (_, i) => `Month ${i + 1}`);
+                    const payoffData = [];
+                    let currentBalance = data.debt_balance;
+                    for (let i = 0; i < payoffPeriod; i++) {
+                        currentBalance -= monthlyPayoff;
+                        payoffData.push(currentBalance);
+                    }
+
+                    debtChart.data.labels = months;
+                    debtChart.data.datasets[0].data = payoffData;
+                    debtChart.update();
+                }
+
+                // Create the debt calculator line chart
+                const debtCtx = document.getElementById('debt-projections').getContext('2d');
+                const debtChart = new Chart(debtCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 12 }, (_, i) => `Month ${i + 1}`),
+                        datasets: [{
+                            label: 'Payoff Over Time',
+                            data: [],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return 'Month ' + (tooltipItem.dataIndex + 1) + ': $' + tooltipItem.raw.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Balance ($)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Initial update of the debt chart
+                updateDebtChart();
+
+                // Add event listeners to update the chart dynamically
+                document.getElementById('monthly-payment').addEventListener('input', updateDebtChart);
+                document.getElementById('payoff-period').addEventListener('change', updateDebtChart);
+
             });
 
         // Chatbot Functionality

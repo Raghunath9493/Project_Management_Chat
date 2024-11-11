@@ -82,15 +82,20 @@
         <h2>Forgot Password</h2>
         <form id="forgot-password-form" method="POST">
             <div class="input-group">
-                <i class="fas fa-envelope"></i>
-                <input type="email" id="forgot-password-email" name="email" placeholder="Email" required>
+                <i class="fas fa-user"></i>
+                <input type="text" id="forgot-nickname" name="nickname" placeholder="Your Nickname" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-utensils"></i>
+                <input type="text" id="forgot-food" name="favorite_food" placeholder="Favorite Food" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-film"></i>
+                <input type="text" id="forgot-movie" name="favorite_movie" placeholder="Favorite Movie" required>
             </div>
             <button type="submit">Submit</button>
         </form>
     </div>
-
-
-
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
@@ -130,7 +135,9 @@
                 event.preventDefault();
 
                 const formData = {
-                    email: $('#forgot-password-email').val() // Adjust selector if needed
+                    nickname: $('#forgot-nickname').val(),
+                    favorite_food: $('#forgot-food').val(),
+                    favorite_movie: $('#forgot-movie').val()
                 };
 
                 $.ajax({
@@ -140,10 +147,8 @@
                     data: JSON.stringify(formData),
                     success: function(response) {
                         alert(response.message);
-                        if (response.message === "Password reset email sent") {
-                            $('#main-content').hide();
-                            $('#forgot-password-container').hide();
-                            $('#login-form-container').fadeIn();
+                        if (response.message === "Security answers verified") {
+                            window.location.href = '/reset_password?token=' + response.token;
                         }
                     },
                     error: function(response) {

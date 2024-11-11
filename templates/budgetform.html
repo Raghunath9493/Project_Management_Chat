@@ -17,11 +17,12 @@
                 <h1>Personal Budget</h1>
             </div>
             <ul class="nav-items">
-                <li><a href="{{ url_for('dashboard') }}">Budget Summary</a></li>
-                <li><a href="{{ url_for('budget_form') }}" class="active">Budget Form</a></li>
+                <li><a href="{{ url_for('dashboard') }}" class="active">Budget Summary</a></li>
+                <li><a href="{{ url_for('budget_form') }}">Budget Form</a></li>
                 <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
                 <li><a href="{{ url_for('profile') }}">Profile</a></li>
-            </ul>
+                <li><a href="{{ url_for('chats') }}">Chats</a></li> 
+            </ul>            
         </div>
 
         <div class="content">

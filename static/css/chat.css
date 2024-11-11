@@ -1,0 +1,38 @@
+.chat-container {
+    display: flex;
+    height: 100vh;
+}
+
+.chat-sidebar {
+    width: 25%;
+    background-color: #f1f1f1;
+    padding: 10px;
+}
+
+.chat-main {
+    width: 75%;
+    padding: 10px;
+}
+
+.chat-main #chat-messages {
+    height: 80%;
+    overflow-y: auto;
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.chat-input {
+    display: flex;
+    justify-content: space-between;
+}
+
+#message-box {
+    width: 85%;
+    padding: 10px;
+}
+
+#send-btn {
+    width: 10%;
+    padding: 10px;
+}

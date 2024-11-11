@@ -256,37 +256,30 @@ def register_routes(app):
     @app.route('/forgot_password', methods=['POST'])
     def forgot_password():
         data = request.get_json()
-        email = data.get('email')  # Extract email from JSON data
+        nickname = data['nickname']
+        favorite_food = data['favorite_food']
+        favorite_movie = data['favorite_movie']
 
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
+        # Find user by security answers
+        user = db.users.find_one({
+            'nickname': nickname,
+            'favorite_food': favorite_food,
+            'favorite_movie': favorite_movie
+        })
 
-        user = db.users.find_one({"email": email})
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+        if user:
+            # Generate a token (can be a random string)
+            token = str(uuid.uuid4())
+            db.password_resets.insert_one({"email": user['email'], "token": token})
 
-        # Generate a unique token
-        token = str(uuid.uuid4())
-        reset_link = f"http://127.0.0.1:5000/reset_password/{token}"
+            return jsonify({'message': 'Security answers verified', 'token': token}), 200
+        else:
+            return jsonify({'error': 'Incorrect security answers'}), 400
 
-        # Save the token in the database
-        db.password_resets.update_one(
-            {"email": email},
-            {"$set": {"token": token}},
-            upsert=True
-        )
 
-        subject = "Password Reset Request"
-        body = f"Click the link to reset your password: {reset_link}"
-        
-        try:
-            send_email(subject, body, email)
-            return jsonify({"message": "Password reset email sent"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    @app.route('/reset_password/<token>', methods=['GET', 'POST'])
-    def reset_password(token):
+    @app.route('/reset_password', methods=['GET', 'POST'])
+    def reset_password():
+        token = request.args.get('token')
         if request.method == 'POST':
             data = request.get_json()
             new_password = data.get('password')
@@ -295,14 +288,19 @@ def register_routes(app):
                 return jsonify({"error": "Password is required"}), 400
 
             reset_entry = db.password_resets.find_one({"token": token})
-
             if not reset_entry:
                 return jsonify({"error": "Invalid or expired token"}), 400
 
             email = reset_entry['email']
+            user = db.users.find_one({"email": email})
+
+            # Check if the new password matches the old password
+            if bcrypt.check_password_hash(user['password'], new_password):
+                return jsonify({"error": "New password is the same as the old password. Please choose a different password."}), 400
+
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
 
-            # Update the user's password
+            # Update user's password
             db.users.update_one(
                 {"email": email},
                 {"$set": {"password": hashed_password}}
@@ -337,7 +335,74 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
-    # ChatBot Search
+    @app.route('/chats')
+    def chats():
+        user_email = session.get('user_email')  # Get the logged-in user's email
+        chat_users = db.chats.find({"participants": user_email})  # Fetch chat members for the user
+
+        # Extract unique users from the chat history
+        users = set()
+        for chat in chat_users:
+            users.update(chat['participants'])  # Assuming 'participants' is a list of email addresses
+
+        # Fetch user details from the database
+        user_details = []
+        for email in users:
+            user_info = db.users.find_one({"email": email})
+            if user_info:
+                user_details.append(user_info)
+
+        return render_template('chats.html', users=user_details)
+
+    
+    @app.route('/api/send_message', methods=['POST'])
+    def send_message():
+        data = request.get_json()
+        sender_email = data['sender']
+        recipient_email = data['recipient']
+        message_content = data['message']
+
+        # Store the message in the database
+        db.messages.insert_one({
+            'sender': sender_email,
+            'recipient': recipient_email,
+            'content': message_content,
+            'timestamp': datetime.utcnow()  # Store the timestamp
+        })
+
+        return jsonify({'message': 'Message sent successfully'})
+    
+    @app.route('/api/get_messages', methods=['GET'])
+    def get_messages():
+        email = request.args.get('email')  # Get logged-in user's email
+        messages = list(db.messages.find({'$or': [{'sender': email}, {'recipient': email}]}))
+        
+        # Format messages for the front end
+        for msg in messages:
+            msg['_id'] = str(msg['_id'])  # Convert ObjectId to string for JSON serialization
+
+        return jsonify(messages)
+
+    @app.route('/api/search_users', methods=['GET'])
+    @jwt_required(optional=True)
+    def search_users():
+        """Search for users matching the query parameter."""
+        query = request.args.get('query', '')
+        if not query:
+            return jsonify([])  # If no query, return empty array
+
+        try:
+            users = list(db.users.find({"$or": [
+                {"nickname": {"$regex": query, "$options": "i"}},
+                {"email": {"$regex": query, "$options": "i"}}
+            ]}).limit(10))
+
+            # Return only the required fields
+            return jsonify([{"nickname": user["nickname"], "email": user["email"]} for user in users])
+        except Exception as e:
+            return jsonify({"error": "An error occurred while searching for users", "details": str(e)}), 500
+        
+    '''# ChatBot Search
     @app.route('/api/search_users', methods=['GET'])
     @jwt_required(optional=True)
     def search_users():
@@ -354,10 +419,10 @@ def register_routes(app):
 
             return jsonify([{"nickname": user["nickname"], "email": user["email"]} for user in users])
         except Exception as e:
-            return jsonify({"error": str(e)}), 500  # Handle database errors
+            return jsonify({"error": str(e)}), 500  # Handle database errors'''
         
 
-    @app.route('/api/send_message', methods=['POST'])
+    '''@app.route('/api/send_message', methods=['POST'])
     @jwt_required()  # Ensure the user is authenticated
     def send_message():
         def get_user_notification_preference(email):
@@ -397,10 +462,10 @@ def register_routes(app):
                     # Handle other preferences or no preference
                     pass
 
-                return jsonify({"message": "Message sent!"}), 200
+                return jsonify({"message": "Message sent!"}), 200'''
         
 
-    @app.route('/api/get_messages', methods=['GET'])
+    '''@app.route('/api/get_messages', methods=['GET'])
     @jwt_required()
     def get_messages():
         """Get messages for a specific user."""
@@ -410,4 +475,4 @@ def register_routes(app):
         # Format messages for response (removing _id and other unwanted fields)
         formatted_messages = [{"sender": msg["sender"], "receiver": msg["receiver"], "message": msg["message"], "timestamp": msg["timestamp"]} for msg in messages]
         
-        return jsonify(formatted_messages), 200
+        return jsonify(formatted_messages), 200'''
