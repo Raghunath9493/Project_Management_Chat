@@ -11,6 +11,11 @@ from email_utils import send_email  # Import the send_email function
 from datetime import datetime
 import json
 from bson import ObjectId
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
+
+app = Flask(__name__)
+socketio = SocketIO(app)
 
 def register_routes(app):
     bcrypt = Bcrypt(app)
@@ -229,30 +234,6 @@ def register_routes(app):
 
         return jsonify(transaction_list)
 
-    # @app.route('/forgot_password', methods=['POST'])
-    # def forgot_password():
-    #     print("here at forgot")
-    #     data = request.get_json()  # Get JSON data
-    #     email = data.get('email')  # Extract email from JSON data
-
-    #     if not email:
-    #         return jsonify({"error": "Email is required"}), 400
-
-    #     user = db.users.find_one({"email": email})
-    #     print("user found", user)
-    #     if not user:
-    #         return jsonify({"error": "User not found"}), 404
-    #     print("passw",user["password"])
-        
-    #     subject = "Password Reset Request"
-    #     body = f"Your password is: {user["password"]}"
-        
-    #     try:
-    #         send_email(subject, body, email)
-    #         return jsonify({"message": "Password reset email sent"}), 200
-    #     except Exception as e:
-    #         return jsonify({"error": str(e)}), 500
-
     @app.route('/forgot_password', methods=['POST'])
     def forgot_password():
         data = request.get_json()
@@ -402,6 +383,13 @@ def register_routes(app):
                     pass
 
                 return jsonify({"message": "Message sent!"}), 200
+            
+            @socketio.on('send_message')
+            def handle_message(data):
+                print('Message from user:', data)
+                # Emit the message to the other user (receiver)
+                emit('receive_message', data, broadcast=True)  # Broadcast to all connected clients
+
         
 
     @app.route('/api/get_messages', methods=['GET'])

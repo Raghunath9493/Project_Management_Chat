@@ -37,59 +37,61 @@
                     <button id="chatbot-toggle-btn">
                         <img src="/static/images/chatbot.png" alt="Chatbot Icon" width="40" height="40"> Chat
                     </button>
-                    <iframe src="/templates/Chat.html" id="chatbot-frame" title="Chatbot" class="chatbot-frame"></iframe>
+                    <iframe src="/chat" id="chatbot-frame" title="Chatbot" class="chatbot-frame hidden"></iframe>
                 </div>
             </div>
+        </div>
 
-            <div class="main-section">
-                <!-- Main content here -->
-                <div class="chart-grid">
-                    <div class="chart-container">
-                        <h2>Expenses</h2>
-                        <canvas id="myPieChart" width="400" height="200"></canvas>
+
+        <div class="main-section">
+            <!-- Main content here -->
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h2>Expenses</h2>
+                    <canvas id="myPieChart" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2>Summary</h2>
+                    <canvas id="budgetSummaryChart" width="400" height="200"></canvas>
+                    <div id="summaryText" class="summary-text"></div>
+                </div>
+                <div class="chart-container">
+                    <h2>Savings Calculator</h2>
+                    <canvas id="savings-calculator" width="400" height="200"></canvas>
+                    <div class="input-group">
+                        <label for="monthly-contributions">Monthly Contributions:</label>
+                        <input type="number" id="monthly-contributions" value="0">
                     </div>
-                    <div class="chart-container">
-                        <h2>Summary</h2>
-                        <canvas id="budgetSummaryChart" width="400" height="200"></canvas>
-                        <div id="summaryText" class="summary-text"></div>
-                    </div>
-                    <div class="chart-container">
-                        <h2>Savings Calculator</h2>
-                        <canvas id="savings-calculator" width="400" height="200"></canvas>
-                        <div class="input-group">
-                            <label for="monthly-contributions">Monthly Contributions:</label>
-                            <input type="number" id="monthly-contributions" value="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="projection-period">Savings Period:</label>
-                            <select id="projection-period">
+                    <div class="input-group">
+                        <label for="projection-period">Savings Period:</label>
+                        <select id="projection-period">
                                 <option value="3">3 Months</option>
                                 <option value="6">6 Months</option>
                                 <option value="12" selected>12 Months</option>
                                 <option value="36">36 Months</option>
                             </select>
-                        </div>
                     </div>
-                    <div class="chart-container">
-                        <h2>Debt Projections</h2>
-                        <canvas id="debt-projections" width="400" height="200"></canvas>
-                        <div class="input-group">
-                            <label for="monthly-payment">Monthly Payment:</label>
-                            <input type="number" id="monthly-payment" value="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="payoff-period">Payoff Period:</label>
-                            <select id="payoff-period">
+                </div>
+                <div class="chart-container">
+                    <h2>Debt Projections</h2>
+                    <canvas id="debt-projections" width="400" height="200"></canvas>
+                    <div class="input-group">
+                        <label for="monthly-payment">Monthly Payment:</label>
+                        <input type="number" id="monthly-payment" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="payoff-period">Payoff Period:</label>
+                        <select id="payoff-period">
                                 <option value="3">3 Months</option>
                                 <option value="6">6 Months</option>
                                 <option value="12" selected>12 Months</option>
                                 <option value="36">36 Months</option>
                             </select>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
     <script>
         const sidebarMenuBtn = document.getElementById('sidebar-menu-button');
