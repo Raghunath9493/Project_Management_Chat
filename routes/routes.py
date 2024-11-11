@@ -1,18 +1,14 @@
 # routes/routes.py
 
-import sys
-import os
-import uuid
+import sys, os,uuid,json
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from pymongo import MongoClient
 from email_utils import send_email  # Import the send_email function
 from datetime import datetime
-import json
 from bson import ObjectId
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit,join_room
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -341,54 +337,41 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500  # Handle database errors
         
+        
+    @socketio.on('connect')
+    def handle_connect():
+    # Use `join_room` to assign a unique room based on the user identity (e.g., `current_user`)
+        current_user = get_jwt_identity()
+        join_room(current_user)  # So messages can be sent specifically to this user
 
     @app.route('/api/send_message', methods=['POST'])
     @jwt_required()  # Ensure the user is authenticated
     def send_message():
-        def get_user_notification_preference(email):
-    # Retrieve notification preference from the database or user profile
-    # ... implementation details ...
-            return "websocket"  # Placeholder, replace with actual implementation
-        def send_push_notification(recipient_email, message):
+        data = request.json
+        sender = get_jwt_identity()
+        receiver = data['receiver']
+        message = data['message']
+        # Add to the database, etc.
+        db.messages.insert_one({
+            "sender": sender,
+            "receiver": receiver,
+            "message": message,
+            "timestamp": datetime.utcnow()
+        })
 
-            def send_websocket_notification(recipient_email, message):
+        # Notify the receiver in real-time
+        socketio.emit('new_message', {'sender': sender, 'message': message}, room=receiver)
 
-                
-                """Send a message from one user to another."""
-                data = request.json
-                sender = data.get('sender')
-                receiver = data.get('receiver')
-                message_text = data.get('message')
+        return jsonify({"status": "Message sent successfully"}), 200
 
-                recipient_email = data.get('receiver')
-                notification_preference = get_user_notification_preference(recipient_email)
+   
 
-                
-                message = {
-                    "sender": sender,
-                    "receiver": receiver,
-                    "message": message_text,
-                    "timestamp": datetime.utcnow()
-                    }
-
-                # Store the message in the database
-                db.messages.insert_one(message)
-                # Send notification based on preference
-                if notification_preference == "websocket":
-                    send_websocket_notification(recipient_email, message)
-                elif notification_preference == "push":
-                    send_push_notification(recipient_email, message)
-                else:
-                    # Handle other preferences or no preference
-                    pass
-
-                return jsonify({"message": "Message sent!"}), 200
             
-            @socketio.on('send_message')
-            def handle_message(data):
-                print('Message from user:', data)
+    @socketio.on('send_message')
+    def handle_message(data):
+        print('Message from user:', data)
                 # Emit the message to the other user (receiver)
-                emit('receive_message', data, broadcast=True)  # Broadcast to all connected clients
+        emit('receive_message', data, broadcast=True)  # Broadcast to all connected clients
 
         
 

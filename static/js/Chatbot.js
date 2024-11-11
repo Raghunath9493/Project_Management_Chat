@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputField = document.getElementById('chatbot-input');
     const userSearchInput = document.getElementById('user-search-input');
     const userList = document.getElementById('user-list');
+    const socket = io.connect('http://127.0.0.1:5000');
 
     // Debounce timer for user search
     let debounceTimer;
@@ -42,6 +43,13 @@ document.addEventListener('DOMContentLoaded', function() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // WebSocket listener for new messages
+    socket.on('new_message', (data) => {
+        // Display the new message in the chat UI when received
+        console.log('New message from:', data.sender); // Debugging log
+        addMessage(data.message, data.sender); // Use addMessage to display in chat
+    });
+
     // Function to simulate sending a message to the receiver
     function sendMessageToReceiver(message) {
         // Simulate that the receiver has received a message
@@ -50,14 +58,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000); // Adjust the timeout for receiver response delay
     }
 
-
     // Send button click event
     sendButton.addEventListener('click', function() {
         const userInput = inputField.value.trim();
         if (userInput) {
             addMessage(userInput, 'You');
             inputField.value = ''; // Clear input field
-
+            // Emit the message to the WebSocket server to forward to the recipient
+            socket.emit('send_message', { message: userInput, receiver: 'receiver_username' });
             // Simulate chatbot response after a delay
             setTimeout(() => {
                 addMessage('This is a simulated response from the chatbot!', 'Bot');
