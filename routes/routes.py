@@ -1,16 +1,17 @@
 # routes/routes.py
 
-import sys
-import os
-import uuid
-from flask import render_template, request, jsonify, redirect, url_for, session
+import sys, os,uuid,json
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from pymongo import MongoClient
 from email_utils import send_email  # Import the send_email function
-from datetime import timedelta, datetime
-import json
+from datetime import datetime
 from bson import ObjectId
+from flask_socketio import SocketIO, emit,join_room
+
+app = Flask(__name__)
+socketio = SocketIO(app)
 
 def register_routes(app):
     bcrypt = Bcrypt(app)
@@ -229,30 +230,6 @@ def register_routes(app):
 
         return jsonify(transaction_list)
 
-    # @app.route('/forgot_password', methods=['POST'])
-    # def forgot_password():
-    #     print("here at forgot")
-    #     data = request.get_json()  # Get JSON data
-    #     email = data.get('email')  # Extract email from JSON data
-
-    #     if not email:
-    #         return jsonify({"error": "Email is required"}), 400
-
-    #     user = db.users.find_one({"email": email})
-    #     print("user found", user)
-    #     if not user:
-    #         return jsonify({"error": "User not found"}), 404
-    #     print("passw",user["password"])
-        
-    #     subject = "Password Reset Request"
-    #     body = f"Your password is: {user["password"]}"
-        
-    #     try:
-    #         send_email(subject, body, email)
-    #         return jsonify({"message": "Password reset email sent"}), 200
-    #     except Exception as e:
-    #         return jsonify({"error": str(e)}), 500
-
     @app.route('/forgot_password', methods=['POST'])
     def forgot_password():
         data = request.get_json()
@@ -337,6 +314,10 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
+    @app.route('/chat')
+    def chat():
+        return render_template('Chat.html')
+
     # ChatBot Search
     @app.route('/api/search_users', methods=['GET'])
     @jwt_required(optional=True)
@@ -356,58 +337,72 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500  # Handle database errors
         
+        
+    @socketio.on('connect')
+    def handle_connect():
+    # Use `join_room` to assign a unique room based on the user identity (e.g., `current_user`)
+        current_user = get_jwt_identity()
+        join_room(current_user)  # So messages can be sent specifically to this user
 
     @app.route('/api/send_message', methods=['POST'])
     @jwt_required()  # Ensure the user is authenticated
     def send_message():
-        def get_user_notification_preference(email):
-    # Retrieve notification preference from the database or user profile
-    # ... implementation details ...
-            return "websocket"  # Placeholder, replace with actual implementation
-        def send_push_notification(recipient_email, message):
+        data = request.json
+        sender = get_jwt_identity()
+        receiver = data['receiver']
+        message = data['message']
+        # Add to the database, etc.
+        db.messages.insert_one({
+            "sender": sender,
+            "receiver": receiver,
+            "message": message,
+            "timestamp": datetime.utcnow()
+        })
 
-            def send_websocket_notification(recipient_email, message):
+        # Notify the receiver in real-time with a prompt for accepting the message
+        socketio.emit('incoming_message', {
+            'sender': sender,
+            'message': message,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=receiver)
 
-                
-                """Send a message from one user to another."""
-                data = request.json
-                sender = data.get('sender')
-                receiver = data.get('receiver')
-                message_text = data.get('message')
+        return jsonify({"status": "Message sent successfully"}), 200
 
-                recipient_email = data.get('receiver')
-                notification_preference = get_user_notification_preference(recipient_email)
+   
 
-                
-                message = {
-                    "sender": sender,
-                    "receiver": receiver,
-                    "message": message_text,
-                    "timestamp": datetime.utcnow()
-                    }
+            
+    @socketio.on('send_message')
+    def handle_message(data):
+        print('Message from user:', data)
+                # Emit the message to the other user (receiver)
+        emit('receive_message', data, broadcast=True)  # Broadcast to all connected clients
 
-                # Store the message in the database
-                db.messages.insert_one(message)
-                # Send notification based on preference
-                if notification_preference == "websocket":
-                    send_websocket_notification(recipient_email, message)
-                elif notification_preference == "push":
-                    send_push_notification(recipient_email, message)
-                else:
-                    # Handle other preferences or no preference
-                    pass
-
-                return jsonify({"message": "Message sent!"}), 200
         
 
     @app.route('/api/get_messages', methods=['GET'])
     @jwt_required()
     def get_messages():
         """Get messages for a specific user."""
-        current_user = get_jwt_identity()  # Get the user from the token
-        messages = list(db.messages.find({"$or": [{"sender": current_user}, {"receiver": current_user}]}))
-        
-        # Format messages for response (removing _id and other unwanted fields)
-        formatted_messages = [{"sender": msg["sender"], "receiver": msg["receiver"], "message": msg["message"], "timestamp": msg["timestamp"]} for msg in messages]
-        
-        return jsonify(formatted_messages), 200
+        current_user = get_jwt_identity()
+        if not current_user:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        try:
+            messages = list(db.messages.find({
+                "$or": [{"sender": current_user}, {"receiver": current_user}]
+            }))
+
+            # Format messages for response (removing _id and other unwanted fields)
+            formatted_messages = [
+                {
+                    "sender": msg["sender"],
+                    "receiver": msg["receiver"],
+                    "message": msg["message"],
+                    "timestamp": msg["timestamp"].isoformat()
+                }
+                for msg in messages
+            ]
+
+            return jsonify(formatted_messages), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

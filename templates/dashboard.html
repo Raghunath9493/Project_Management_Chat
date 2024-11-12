@@ -7,8 +7,10 @@
     <title>Dashboard</title>
     <link rel="stylesheet" href="/static/css/home.css">
     <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/Chat.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
@@ -31,81 +33,66 @@
                 <button id="sidebar-menu-button"><span class="menu-icon">☰</span></button>
                 <h2>Budget Summary</h2>
                 <div class="logout-button">
-                    <span id="user-nickname"></span>
                     <button id="logout-btn">Logout</button>
+                    <button id="chatbot-toggle-btn">
+                        <img src="/static/images/chatbot.png" alt="Chatbot Icon" width="40" height="40"> Chat
+                    </button>
+                    <iframe src="/chat" id="chatbot-frame" title="Chatbot" class="chatbot-frame hidden"></iframe>
                 </div>
             </div>
+        </div>
 
-            <div class="main-section">
-                <div class="chart-grid">
-                    <div class="chart-container">
-                        <h2>Expenses</h2>
-                        <canvas id="myPieChart" width="400" height="200"></canvas>
+
+        <div class="main-section">
+            <!-- Main content here -->
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h2>Expenses</h2>
+                    <canvas id="myPieChart" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2>Summary</h2>
+                    <canvas id="budgetSummaryChart" width="400" height="200"></canvas>
+                    <div id="summaryText" class="summary-text"></div>
+                </div>
+                <div class="chart-container">
+                    <h2>Savings Calculator</h2>
+                    <canvas id="savings-calculator" width="400" height="200"></canvas>
+                    <div class="input-group">
+                        <label for="monthly-contributions">Monthly Contributions:</label>
+                        <input type="number" id="monthly-contributions" value="0">
                     </div>
-                    <div class="chart-container">
-                        <h2>Summary</h2>
-                        <canvas id="budgetSummaryChart" width="400" height="200"></canvas>
-                        <div id="summaryText" class="summary-text"></div>
-                    </div>
-                    <div class="chart-container">
-                        <h2>Savings Calculator</h2>
-                        <canvas id="savings-calculator" width="400" height="200"></canvas>
-                        <div class="input-group">
-                            <label for="monthly-contributions">Monthly Contributions:</label>
-                            <input type="number" id="monthly-contributions" value="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="projection-period">Savings Period:</label>
-                            <select id="projection-period">
+                    <div class="input-group">
+                        <label for="projection-period">Savings Period:</label>
+                        <select id="projection-period">
                                 <option value="3">3 Months</option>
                                 <option value="6">6 Months</option>
                                 <option value="12" selected>12 Months</option>
                                 <option value="36">36 Months</option>
                             </select>
-                        </div>
                     </div>
-                    <div class="chart-container">
-                        <h2>Debt Projections</h2>
-                        <canvas id="debt-projections" width="400" height="200"></canvas>
-                        <div class="input-group">
-                            <label for="monthly-payment">Monthly Payment:</label>
-                            <input type="number" id="monthly-payment" value="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="payoff-period">Payoff Period:</label>
-                            <select id="payoff-period">
+                </div>
+                <div class="chart-container">
+                    <h2>Debt Projections</h2>
+                    <canvas id="debt-projections" width="400" height="200"></canvas>
+                    <div class="input-group">
+                        <label for="monthly-payment">Monthly Payment:</label>
+                        <input type="number" id="monthly-payment" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="payoff-period">Payoff Period:</label>
+                        <select id="payoff-period">
                                 <option value="3">3 Months</option>
                                 <option value="6">6 Months</option>
                                 <option value="12" selected>12 Months</option>
                                 <option value="36">36 Months</option>
                             </select>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Chatbot Component -->
-    <div class="chatbot-icon" id="chatbot-icon">
-        <img src="{{ url_for('static', filename='images/chatbot.png') }}" alt="Chatbot Icon" />
     </div>
-    <div class="chatbot-container" id="chatbot-container">
-        <div class="chatbot-header">
-            <h4>Chatbot</h4>
-        </div>
-        <div class="user-search">
-            <input type="text" id="user-search-input" placeholder="Search users...">
-            <button id="search-user-button">Search</button>
-        </div>
-        <div class="user-list" id="user-list"></div>
-        <div class="chatbot-messages" id="chatbot-messages"></div>
-        <div class="chatbot-input">
-            <input type="text" id="chatbot-input" placeholder="Type a message..." />
-            <button id="send-button">Send</button>
-        </div>
-    </div>
-
     <script>
         const sidebarMenuBtn = document.getElementById('sidebar-menu-button');
         const sidebar = document.querySelector('.sidebar');
@@ -137,123 +124,310 @@
                     }
                 }
                 console.log(data);
-                // Extract relevant data for the pie chart and other charts...
+                // Extract relevant data for the pie chart
+                const labels = ['Housing', 'Groceries', 'Shopping', 'Transportation', 'Bills', 'Entertainment', 'Education', 'Savings', 'Debt'];
+                const values = [
+                    data.housing,
+                    data.groceries,
+                    data.shopping,
+                    data.transportation,
+                    data.bills,
+                    data.entertainment,
+                    data.education,
+                    data.savings,
+                    data.debt
+                ];
 
-                // Your existing chart code will be here...
-            });
-
-        // Chatbot Functionality
-        const chatbotIcon = document.getElementById('chatbot-icon');
-        const chatbotContainer = document.getElementById('chatbot-container');
-        const sendButton = document.getElementById('send-button');
-        const messagesContainer = document.getElementById('chatbot-messages');
-        const inputField = document.getElementById('chatbot-input');
-        const userSearchInput = document.getElementById('user-search-input');
-        const userList = document.getElementById('user-list');
-
-        // Toggle chatbot visibility
-        chatbotIcon.addEventListener('click', function() {
-            chatbotContainer.style.display = chatbotContainer.style.display === 'block' ? 'none' : 'block';
-            inputField.focus(); // Focus on the input field when opened
-            userList.style.display = 'none'; // Hide user list when opened
-        });
-
-        // Function to add message to chat
-        function addMessage(message, sender) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = `${sender}: ${message}`;
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
-        }
-
-        // Handle send button click
-        sendButton.addEventListener('click', function() {
-            const userInput = inputField.value.trim();
-            if (userInput) {
-                addMessage(userInput, 'You');
-                inputField.value = ''; // Clear input field
-
-                // Simulate chatbot response (you can replace this with actual API call)
-                setTimeout(() => {
-                    addMessage('This is a simulated response from the chatbot!', 'Bot');
-                }, 1000);
-            }
-        });
-
-        // Handle enter key to send message
-        inputField.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendButton.click();
-            }
-        });
-
-        // Search for users
-        document.getElementById('search-user-button').addEventListener('click', function() {
-            const query = userSearchInput.value.trim();
-            // Call the API to fetch users based on the search query
-            fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(users => {
-                    userList.innerHTML = ''; // Clear previous results
-                    if (users.length > 0) {
-                        users.forEach(user => {
-                            const userElement = document.createElement('div');
-                            userElement.textContent = user.nickname; // Assuming each user has a 'name' property
-                            userElement.addEventListener('click', function() {
-                                inputField.value = `Message to ${user.name}: `;
-                                userList.style.display = 'none'; // Hide user list after selection
-                            });
-                            userList.appendChild(userElement);
-                        });
-                        userList.style.display = 'block'; // Show the user list
-                    } else {
-                        userList.style.display = 'none'; // Hide if no users found
+                // Create the pie chart
+                const ctx = document.getElementById('myPieChart').getContext('2d');
+                const myPieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Monthly Expenses',
+                            data: values,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(199, 199, 199, 1)',
+                                'rgba(83, 102, 255, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(199, 199, 199, 1)',
+                                'rgba(83, 102, 255, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.label + ': $' + tooltipItem.raw;
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
-        });
 
-        // Hide the user list if the input field is empty
-        // Search for users with debounce
-        let debounceTimer;
 
-        userSearchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const query = userSearchInput.value.trim();
-                if (query) {
-                    fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(users => {
-                            userList.innerHTML = ''; // Clear previous results
-                            if (users.length > 0) {
-                                users.forEach(user => {
-                                    const userElement = document.createElement('div');
-                                    userElement.textContent = user.nickname; // Use nickname correctly
-                                    userElement.addEventListener('click', function() {
-                                        inputField.value = `Message to ${user.nickname}: `;
-                                        userList.style.display = 'none'; // Hide user list after selection
-                                    });
-                                    userList.appendChild(userElement);
-                                });
-                                userList.style.display = 'block'; // Show the user list
-                            } else {
-                                userList.style.display = 'none'; // Hide if no users found
-                            }
-                        });
-                } else {
-                    userList.style.display = 'none'; // Hide if input is empty
+                // SAVINGS PROJECTIONS
+
+                // Set the initial value of the monthly contributions input
+                document.getElementById('monthly-contributions').value = data.savings;
+
+                // Function to update the savings chart
+                function updateSavingsChart() {
+                    const monthlyContributions = parseFloat(document.getElementById('monthly-contributions').value);
+                    const projectionPeriod = parseInt(document.getElementById('projection-period').value);
+                    const months = Array.from({
+                        length: projectionPeriod
+                    }, (_, i) => `Month ${i + 1}`);
+                    const savingsData = [];
+                    let currentBalance = data.savings_balance;
+                    for (let i = 0; i < projectionPeriod; i++) {
+                        currentBalance += monthlyContributions;
+                        savingsData.push(currentBalance);
+                    }
+
+                    savingsChart.data.labels = months;
+                    savingsChart.data.datasets[0].data = savingsData;
+                    savingsChart.update();
                 }
-            }, 300); // Debounce timer
-        });
 
-        // Add Enter key functionality to the user search input
-        userSearchInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                document.getElementById('search-user-button').click(); // Clicks the search button
-            }
+                // Create the savings calculator line chart
+                const savingsCtx = document.getElementById('savings-calculator').getContext('2d');
+                const savingsChart = new Chart(savingsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({
+                            length: 12
+                        }, (_, i) => `Month ${i + 1}`),
+                        datasets: [{
+                            label: 'Savings Over Time',
+                            data: [],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return 'Month ' + (tooltipItem.dataIndex + 1) + ': $' + tooltipItem.raw.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Balance ($)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        }
+                    }
+
+                });
+
+                // Initial update of the savings chart
+                updateSavingsChart();
+
+                // Add event listeners to update the chart dynamically
+                document.getElementById('monthly-contributions').addEventListener('input', updateSavingsChart);
+                document.getElementById('projection-period').addEventListener('change', updateSavingsChart);
+
+                // SUMMARY BAR CHART
+                const fixedExpenses = data.housing + data.bills + data.education + data.debt;
+                const variableExpenses = data.groceries + data.shopping + data.transportation + data.entertainment;
+                const totalExpenses = fixedExpenses + variableExpenses;
+                const monthlyIncome = data.primary_income + data.other_income;
+                const netBalance = monthlyIncome - totalExpenses;
+
+                const summaryElement = document.getElementById('budgetSummaryChart').getContext('2d');
+                new Chart(summaryElement, {
+                    type: 'bar', // Use 'bar' type and set indexAxis to 'y' for horizontal bars
+                    data: {
+                        labels: ['Expenses', 'Income'],
+                        datasets: [{
+                            label: 'Fixed Expenses',
+                            data: [fixedExpenses, 0],
+                            backgroundColor: '#FF6384',
+                            borderColor: '#FF6384',
+                            borderWidth: 1
+                        }, {
+                            label: 'Variable Expenses',
+                            data: [variableExpenses, 0],
+                            backgroundColor: '#36A2EB',
+                            borderColor: '#36A2EB',
+                            borderWidth: 1
+                        }, {
+                            label: 'Primary Income',
+                            data: [0, data.primary_income],
+                            backgroundColor: '#FFCE56',
+                            borderColor: '#FFCE56',
+                            borderWidth: 1
+                        }, {
+                            label: 'Other Income',
+                            data: [0, data.other_income],
+                            backgroundColor: '#4BC0C0',
+                            borderColor: '#4BC0C0',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y', // This makes the bars horizontal
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                stacked: true
+                            },
+                            y: {
+                                stacked: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Monthly Budget Summary'
+                            }
+                        }
+                    }
+                });
+
+                const summaryTextDiv = document.getElementById('summaryText');
+                summaryTextDiv.innerHTML = `
+                    <p><strong>Total Income:</strong> ${monthlyIncome}</p>
+                    <p><strong>Total Expenses:</strong> ${totalExpenses}</p>
+                    <hr>
+                    <p><strong>Net Balance:</strong> ${netBalance}</p>
+                `;
+
+                // DEBT PAYOFF PROJECTIONS
+
+                // Set the initial value of the monthly payoff input
+                document.getElementById('monthly-payment').value = data.debt;
+
+                // Function to update the debt chart
+                function updateDebtChart() {
+                    const monthlyPayoff = parseFloat(document.getElementById('monthly-payment').value);
+                    const payoffPeriod = parseInt(document.getElementById('payoff-period').value);
+                    const months = Array.from({
+                        length: payoffPeriod
+                    }, (_, i) => `Month ${i + 1}`);
+                    const payoffData = [];
+                    let currentBalance = data.debt_balance;
+                    for (let i = 0; i < payoffPeriod; i++) {
+                        currentBalance -= monthlyPayoff;
+                        payoffData.push(currentBalance);
+                    }
+
+                    debtChart.data.labels = months;
+                    debtChart.data.datasets[0].data = payoffData;
+                    debtChart.update();
+                }
+
+                // Create the debt calculator line chart
+                const debtCtx = document.getElementById('debt-projections').getContext('2d');
+                const debtChart = new Chart(debtCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({
+                            length: 12
+                        }, (_, i) => `Month ${i + 1}`),
+                        datasets: [{
+                            label: 'Payoff Over Time',
+                            data: [],
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return 'Month ' + (tooltipItem.dataIndex + 1) + ': $' + tooltipItem.raw.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Balance ($)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Initial update of the debt chart
+                updateDebtChart();
+
+                // Add event listeners to update the chart dynamically
+                document.getElementById('monthly-payment').addEventListener('input', updateDebtChart);
+                document.getElementById('payoff-period').addEventListener('change', updateDebtChart);
+
+            });
+        // Toggle the chatbot frame visibility
+        document.getElementById('chatbot-toggle-btn').addEventListener('click', function() {
+            const chatbotFrame = document.getElementById('chatbot-frame');
+            chatbotFrame.style.display = chatbotFrame.style.display === 'none' || chatbotFrame.style.display === '' ? 'block' : 'none';
         });
     </script>
-
 </body>
 
 </html>

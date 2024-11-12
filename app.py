@@ -5,10 +5,10 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from routes.routes import register_routes
 
+
 def create_app():
     app = Flask(__name__)
     jwt = JWTManager(app)
-
     # Load configuration
     config_name = os.getenv('FLASK_CONFIG', 'DevelopmentConfig')
     app.config.from_object(f'config.{config_name}')

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Chat.css') }}">
+    <script src="{{ url_for('static', filename='js/Chatbot.js') }}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <!-- Chatbot Component -->
+    <div class="chatbot-icon" id="chatbot-icon">
+        <img src="{{ url_for('static', filename='images/chatbot.png') }}" alt="Chatbot Icon" />
+    </div>
+    <div class="chatbot-container" id="chatbot-container">
+        <div class="chatbot-header">
+            <h4>Chatbot</h4>
+        </div>
+        <div class="user-search">
+            <input type="text" id="user-search-input" placeholder="Search users...">
+            <button id="search-user-button">Search</button>
+        </div>
+        <div class="user-list" id="user-list"></div>
+        <div class="chatbot-messages" id="chatbot-messages"></div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input" placeholder="Type a message..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/Chatbot.js') }}"></script>
+
+    <script>
+        // Chatbot Functionality
+        const chatbotIcon = document.getElementById('chatbot-icon');
+        const chatbotContainer = document.getElementById('chatbot-container');
+        const sendButton = document.getElementById('send-button');
+        const messagesContainer = document.getElementById('chatbot-messages');
+        const inputField = document.getElementById('chatbot-input');
+        const userSearchInput = document.getElementById('user-search-input');
+        const userList = document.getElementById('user-list');
+
+        // Toggle chatbot visibility
+        chatbotIcon.addEventListener('click', function() {
+            console.log('Chatbot icon clicked'); // Debugging log
+            chatbotContainer.style.display = chatbotContainer.style.display === 'block' ? 'none' : 'block';
+            inputField.focus(); // Focus on the input field when opened
+            userList.style.display = 'none'; // Hide user list when opened
+        });
+
+        // Function to add message to chat
+        function addMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = `${sender}: ${message}`;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
+        }
+
+        // Handle send button click
+        sendButton.addEventListener('click', function() {
+            const userInput = inputField.value.trim();
+            if (userInput) {
+                addMessage(userInput, 'You');
+                inputField.value = ''; // Clear input field
+
+                // Simulate chatbot response (you can replace this with actual API call)
+                // setTimeout(() => {
+                //     addMessage('This is a simulated response from the chatbot!', 'Bot');
+                // }, 1000);
+            }
+        });
+
+        // Handle enter key to send message
+        inputField.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        // Search for users
+        document.getElementById('search-user-button').addEventListener('click', function() {
+            const query = userSearchInput.value.trim();
+            fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(users => {
+                    userList.innerHTML = ''; // Clear previous results
+                    if (users.length > 0) {
+                        users.forEach(user => {
+                            const userElement = document.createElement('div');
+                            userElement.textContent = user.nickname; // Assuming each user has a 'nickname' property
+                            userElement.addEventListener('click', function() {
+                                inputField.value = `Message to ${user.nickname}: `;
+                                userList.style.display = 'none'; // Hide user list after selection
+                            });
+                            userList.appendChild(userElement);
+                        });
+                        userList.style.display = 'block'; // Show the user list
+                    } else {
+                        userList.style.display = 'none'; // Hide if no users found
+                    }
+                });
+        });
+
+        // Hide the user list if the input field is empty
+        let debounceTimer;
+        userSearchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = userSearchInput.value.trim();
+                if (query) {
+                    fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(users => {
+                            userList.innerHTML = ''; // Clear previous results
+                            if (users.length > 0) {
+                                users.forEach(user => {
+                                    const userElement = document.createElement('div');
+                                    userElement.textContent = user.nickname;
+                                    userElement.addEventListener('click', function() {
+                                        inputField.value = `Message to ${user.nickname}: `;
+                                        userList.style.display = 'none';
+                                    });
+                                    userList.appendChild(userElement);
+                                });
+                                userList.style.display = 'block';
+                            } else {
+                                userList.style.display = 'none';
+                            }
+                        });
+                } else {
+                    userList.style.display = 'none';
+                }
+            }, 300); // Debounce timer
+        });
+
+        // Add Enter key functionality to the user search input
+        userSearchInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('search-user-button').click();
+            }
+        });
+    </script>
+</body>
+
+</html>
