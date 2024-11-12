@@ -359,8 +359,12 @@ def register_routes(app):
             "timestamp": datetime.utcnow()
         })
 
-        # Notify the receiver in real-time
-        socketio.emit('new_message', {'sender': sender, 'message': message}, room=receiver)
+        # Notify the receiver in real-time with a prompt for accepting the message
+        socketio.emit('incoming_message', {
+            'sender': sender,
+            'message': message,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=receiver)
 
         return jsonify({"status": "Message sent successfully"}), 200
 

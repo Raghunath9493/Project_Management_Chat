@@ -66,10 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
             inputField.value = ''; // Clear input field
             // Emit the message to the WebSocket server to forward to the recipient
             socket.emit('send_message', { message: userInput, receiver: 'receiver_username' });
-            // Simulate chatbot response after a delay
-            setTimeout(() => {
-                addMessage('This is a simulated response from the chatbot!', 'Bot');
-            }, 1000);
+
         }
     });
 
