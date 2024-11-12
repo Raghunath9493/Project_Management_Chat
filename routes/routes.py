@@ -11,6 +11,7 @@ from email_utils import send_email  # Import the send_email function
 from datetime import timedelta, datetime
 import json
 from bson import ObjectId
+from database import save_messaged_user
 
 def register_routes(app):
     bcrypt = Bcrypt(app)
@@ -374,14 +375,24 @@ def register_routes(app):
     
     @app.route('/api/get_messages', methods=['GET'])
     def get_messages():
-        email = request.args.get('email')  # Get logged-in user's email
-        messages = list(db.messages.find({'$or': [{'sender': email}, {'recipient': email}]}))
-        
-        # Format messages for the front end
-        for msg in messages:
-            msg['_id'] = str(msg['_id'])  # Convert ObjectId to string for JSON serialization
+        sender = request.args.get('sender')
+        recipient = request.args.get('recipient')
 
+        if not sender or not recipient:
+            return jsonify({'error': 'Both sender and recipient are required'}), 400
+
+        # Fetch messages where the sender and recipient are either the logged-in user or the selected user
+        messages = db.messages.find({
+            "$or": [
+                {"sender": sender, "recipient": recipient},
+                {"sender": recipient, "recipient": sender}
+            ]
+        }).sort("timestamp")
+
+        # Convert messages to JSON format
+        messages = [{"sender": msg["sender"], "content": msg["content"]} for msg in messages]
         return jsonify(messages)
+
 
     @app.route('/api/search_users', methods=['GET'])
     @jwt_required(optional=True)
@@ -401,78 +412,20 @@ def register_routes(app):
             return jsonify([{"nickname": user["nickname"], "email": user["email"]} for user in users])
         except Exception as e:
             return jsonify({"error": "An error occurred while searching for users", "details": str(e)}), 500
+
+    @app.route('/api/add_chat', methods=['POST'])
+    def add_chat():
+        # Retrieve the email of the selected user from the request
+        data = request.json
+        selected_user_email = data.get('email')
         
-    '''# ChatBot Search
-    @app.route('/api/search_users', methods=['GET'])
-    @jwt_required(optional=True)
-    def search_users():
-        """Search for users matching the query parameter."""
-        query = request.args.get('query', '')
-        if not query:
-            return jsonify([])  # If no query, return empty array
-
-        try:
-            users = list(db.users.find({"$or": [
-                {"nickname": {"$regex": query, "$options": "i"}},
-                {"email": {"$regex": query, "$options": "i"}}
-            ]}).limit(10))
-
-            return jsonify([{"nickname": user["nickname"], "email": user["email"]} for user in users])
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500  # Handle database errors'''
+        if not selected_user_email:
+            return jsonify({'error': 'No email provided'}), 400
         
-
-    '''@app.route('/api/send_message', methods=['POST'])
-    @jwt_required()  # Ensure the user is authenticated
-    def send_message():
-        def get_user_notification_preference(email):
-    # Retrieve notification preference from the database or user profile
-    # ... implementation details ...
-            return "websocket"  # Placeholder, replace with actual implementation
-        def send_push_notification(recipient_email, message):
-
-            def send_websocket_notification(recipient_email, message):
-
-                
-                """Send a message from one user to another."""
-                data = request.json
-                sender = data.get('sender')
-                receiver = data.get('receiver')
-                message_text = data.get('message')
-
-                recipient_email = data.get('receiver')
-                notification_preference = get_user_notification_preference(recipient_email)
-
-                
-                message = {
-                    "sender": sender,
-                    "receiver": receiver,
-                    "message": message_text,
-                    "timestamp": datetime.utcnow()
-                    }
-
-                # Store the message in the database
-                db.messages.insert_one(message)
-                # Send notification based on preference
-                if notification_preference == "websocket":
-                    send_websocket_notification(recipient_email, message)
-                elif notification_preference == "push":
-                    send_push_notification(recipient_email, message)
-                else:
-                    # Handle other preferences or no preference
-                    pass
-
-                return jsonify({"message": "Message sent!"}), 200'''
+        # Get the logged-in user's email from the session
+        current_user_email = session.get('email')
         
-
-    '''@app.route('/api/get_messages', methods=['GET'])
-    @jwt_required()
-    def get_messages():
-        """Get messages for a specific user."""
-        current_user = get_jwt_identity()  # Get the user from the token
-        messages = list(db.messages.find({"$or": [{"sender": current_user}, {"receiver": current_user}]}))
+        # Save the messaged user relationship in MongoDB
+        save_messaged_user(current_user_email, selected_user_email)
         
-        # Format messages for response (removing _id and other unwanted fields)
-        formatted_messages = [{"sender": msg["sender"], "receiver": msg["receiver"], "message": msg["message"], "timestamp": msg["timestamp"]} for msg in messages]
-        
-        return jsonify(formatted_messages), 200'''
+        return jsonify({'message': 'User added to messaged list'}), 200

@@ -16,3 +16,11 @@ def save_reset_token(email, token):
         {"$set": {"token": token}},
         upsert=True
     )
+
+def save_messaged_user(user_email, messaged_user_email):
+    """Add a user to the 'messaged users' list if not already present."""
+    if not db.messaged_users.find_one({"user_email": user_email, "messaged_user_email": messaged_user_email}):
+        db.messaged_users.insert_one({
+            "user_email": user_email,
+            "messaged_user_email": messaged_user_email
+        })

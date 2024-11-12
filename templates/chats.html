@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
     <link rel="stylesheet" href="/static/css/chat.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
 
 <body>
     <div class="chat-container">
         <div class="chat-sidebar" id="chat-sidebar">
-            <input type="text" id="search-box" placeholder="Search..." />
+            <input type="text" id="user-search-input" placeholder="Search users..." />
             <button id="search-user-button">Search</button>
+            <div id="search-results">
+                <!-- Dynamically filled with search results -->
+            </div>
             <ul id="user-list">
-                <!-- Dynamically filled with user list -->
+                <!-- Permanent list of messaged users -->
             </ul>
         </div>
 
@@ -32,49 +35,101 @@
 
     <script>
         const userList = document.getElementById('user-list');
+        const searchResults = document.getElementById('search-results');
         const chatMessages = document.getElementById('chat-messages');
         const searchUserButton = document.getElementById('search-user-button');
-        const userSearchInput = document.getElementById('search-box');
-        const chatSidebar = document.getElementById('chat-sidebar'); // Sidebar reference
-        const loggedInUserEmail = session['email'];
+        const userSearchInput = document.getElementById('user-search-input');
+        const chatSidebar = document.getElementById('chat-sidebar');
+        
+        const loggedInUserEmail = "{{ session['email'] }}";
         let currentChatEmail = '';
-
-        // Fetch messages when the page loads
-        fetch(`/api/get_messages?email=${encodeURIComponent(loggedInUserEmail)}`)
-            .then(response => response.json())
-            .then(messages => {
-                messages.forEach(message => {
-                    chatMessages.innerHTML += `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
+        let messagedUsers = new Set(); // Use a Set to store unique messaged users
+    
+        // Function to add a user to the permanent sidebar list
+        function addUserToSidebar(email) {
+            if (!messagedUsers.has(email)) {
+                messagedUsers.add(email);
+    
+                const userElement = document.createElement('li');
+                userElement.textContent = email;
+                userElement.dataset.email = email;
+    
+                // Make each user clickable to open their chat
+                userElement.addEventListener('click', function () {
+                    currentChatEmail = email;
+                    chatMessages.innerHTML += `<p>Chat with: ${email}</p>`; // Display chat header
+                    loadMessages(email); // Load messages with this user
                 });
-            })
-            .catch(error => console.error('Error fetching messages:', error));
-
-        // Search for users
-        searchUserButton.addEventListener('click', function () {
-            const query = userSearchInput.value.trim();
-            fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
+    
+                // Append the user to the permanent sidebar list
+                userList.appendChild(userElement);
+    
+                // Save the user on the server as a "messaged user"
+                fetch('/api/add_chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                })
                 .then(response => response.json())
-                .then(users => {
-                    userList.innerHTML = ''; // Clear previous results
-                    if (users.length > 0) {
-                        users.forEach(user => {
-                            const userElement = document.createElement('div');
-                            userElement.textContent = user.nickname; // Assuming each user has a 'nickname' property
-                            userElement.dataset.email = user.email; // Store email for click event
-                            userElement.addEventListener('click', function () {
-                                addChat(user.email); // Add chat on click
-                                userSearchInput.value = ''; // Clear search box
-                                userList.style.display = 'none'; // Hide user list after selection
-                            });
-                            userList.appendChild(userElement);
-                        });
-                        userList.style.display = 'block'; // Show the user list
-                    } else {
-                        userList.style.display = 'none'; // Hide if no users found
+                .then(data => {
+                    if (!data.message) {
+                        console.error(data.error);
                     }
-                });
-        });
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+    
+        // Search for users when typing in the search input with debounce
+        let debounceTimer;
+        userSearchInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = userSearchInput.value.trim();
+                if (query) {
+                    fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(users => {
+                            searchResults.innerHTML = ''; // Clear previous search results
+                            if (users.length > 0) {
+                                users.forEach(user => {
+                                    const userElement = document.createElement('div');
+                                    userElement.textContent = user.nickname;
+                                    userElement.addEventListener('click', function () {
+                                        userSearchInput.value = ''; // Clear search input
+                                        currentChatEmail = user.email; // Set the selected user's email for chat
+                                        searchResults.style.display = 'none'; // Hide search results
 
+                                        // Add the selected user to the permanent list
+                                        addUserToSidebar(user.email);
+                                    });
+                                    searchResults.appendChild(userElement);
+                                });
+                                searchResults.style.display = 'block'; // Show search results if matches found
+                            } else {
+                                searchResults.style.display = 'none';
+                            }
+                        })
+                        .catch(error => console.error('Error fetching users:', error));
+                } else {
+                    searchResults.style.display = 'none'; // Hide if no input
+                }
+            }, 300); // Debounce timer
+        });
+    
+        function loadMessages(email) {
+            fetch(`/api/get_messages?sender=${encodeURIComponent(loggedInUserEmail)}&recipient=${encodeURIComponent(email)}`)
+                .then(response => response.json())
+                .then(messages => {
+                    chatMessages.innerHTML = ''; // Clear previous messages
+                    messages.forEach(message => {
+                        chatMessages.innerHTML += `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
+                    });
+                })
+                .catch(error => console.error('Error fetching messages:', error));
+        }
+
+    
         // Sending messages
         document.getElementById('send-btn').addEventListener('click', function () {
             const message = document.getElementById('message-box').value;
@@ -82,50 +137,21 @@
                 fetch('/api/send_message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sender: loggedInUserEmail, recipient: currentChatEmail, message: message })
+                    body: JSON.stringify({ sender: loggedInUserEmail, recipient: currentChatEmail, message })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message) {
-                        chatMessages.innerHTML += `<p>You: ${message}</p>`; // Display sent message
-                        document.getElementById('message-box').value = ''; // Clear input
-                    } else {
-                        console.error(data.error);
-                    }
-                })
-                .catch(error => console.error('Error sending message:', error));
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            chatMessages.innerHTML += `<p>You: ${message}</p>`;
+                            document.getElementById('message-box').value = ''; // Clear input field
+                        } else {
+                            console.error(data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error sending message:', error));
             }
         });
-
-        function addChat(email) {
-            // Create a new chat user element
-            const chatUserElement = document.createElement('li');
-            chatUserElement.textContent = email; // You can change this to user nickname if available
-            chatUserElement.dataset.email = email; // Store email for future reference
-
-            // Append the user to the sidebar
-            const chatSidebarList = document.createElement('ul'); // Create a new list to show active chats
-            chatSidebar.appendChild(chatUserElement); // Append the user element to the sidebar
-            chatUserElement.addEventListener('click', function () {
-                // Load messages or start chat with this user
-                chatMessages.innerHTML += `<p>Chat with: ${email}</p>`; // Display chat header or similar
-            });
-
-            // Optional: Call API to add the chat on the server
-            fetch('/api/add_chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.message) {
-                    console.error(data.error);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
     </script>
+    
 </body>
-
 </html>
