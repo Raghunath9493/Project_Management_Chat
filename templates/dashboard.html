@@ -23,8 +23,8 @@
                 <li><a href="{{ url_for('budget_form') }}">Budget Form</a></li>
                 <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
                 <li><a href="{{ url_for('profile') }}">Profile</a></li>
-                <li><a href="{{ url_for('chats') }}">Chats</a></li> 
-            </ul>            
+                <li><a href="{{ url_for('chats') }}">Chats</a></li>
+            </ul>
         </div>
 
         <div class="content">
@@ -87,25 +87,7 @@
         </div>
     </div>
 
-    <!-- Chatbot Component -->
-    <div class="chatbot-icon" id="chatbot-icon">
-        <img src="{{ url_for('static', filename='images/chatbot.png') }}" alt="Chatbot Icon" />
-    </div>
-    <div class="chatbot-container" id="chatbot-container">
-        <div class="chatbot-header">
-            <h4>Chatbot</h4>
-        </div>
-        <div class="user-search">
-            <input type="text" id="user-search-input" placeholder="Search users...">
-            <button id="search-user-button">Search</button>
-        </div>
-        <div class="user-list" id="user-list"></div>
-        <div class="chatbot-messages" id="chatbot-messages"></div>
-        <div class="chatbot-input">
-            <input type="text" id="chatbot-input" placeholder="Type a message..." />
-            <button id="send-button">Send</button>
-        </div>
-    </div>
+
 
     <script>
         const sidebarMenuBtn = document.getElementById('sidebar-menu-button');
@@ -213,7 +195,9 @@
                 function updateSavingsChart() {
                     const monthlyContributions = parseFloat(document.getElementById('monthly-contributions').value);
                     const projectionPeriod = parseInt(document.getElementById('projection-period').value);
-                    const months = Array.from({ length: projectionPeriod }, (_, i) => `Month ${i + 1}`);
+                    const months = Array.from({
+                        length: projectionPeriod
+                    }, (_, i) => `Month ${i + 1}`);
                     const savingsData = [];
                     let currentBalance = data.savings_balance;
                     for (let i = 0; i < projectionPeriod; i++) {
@@ -231,7 +215,9 @@
                 const savingsChart = new Chart(savingsCtx, {
                     type: 'line',
                     data: {
-                        labels: Array.from({ length: 12 }, (_, i) => `Month ${i + 1}`),
+                        labels: Array.from({
+                            length: 12
+                        }, (_, i) => `Month ${i + 1}`),
                         datasets: [{
                             label: 'Savings Over Time',
                             data: [],
@@ -293,36 +279,31 @@
                     type: 'bar', // Use 'bar' type and set indexAxis to 'y' for horizontal bars
                     data: {
                         labels: ['Expenses', 'Income'],
-                        datasets: [
-                            {
-                                label: 'Fixed Expenses',
-                                data: [fixedExpenses, 0],
-                                backgroundColor: '#FF6384',
-                                borderColor: '#FF6384',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Variable Expenses',
-                                data: [variableExpenses, 0],
-                                backgroundColor: '#36A2EB',
-                                borderColor: '#36A2EB',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Primary Income',
-                                data: [0, data.primary_income],
-                                backgroundColor: '#FFCE56',
-                                borderColor: '#FFCE56',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Other Income',
-                                data: [0, data.other_income],
-                                backgroundColor: '#4BC0C0',
-                                borderColor: '#4BC0C0',
-                                borderWidth: 1
-                            }
-                        ]
+                        datasets: [{
+                            label: 'Fixed Expenses',
+                            data: [fixedExpenses, 0],
+                            backgroundColor: '#FF6384',
+                            borderColor: '#FF6384',
+                            borderWidth: 1
+                        }, {
+                            label: 'Variable Expenses',
+                            data: [variableExpenses, 0],
+                            backgroundColor: '#36A2EB',
+                            borderColor: '#36A2EB',
+                            borderWidth: 1
+                        }, {
+                            label: 'Primary Income',
+                            data: [0, data.primary_income],
+                            backgroundColor: '#FFCE56',
+                            borderColor: '#FFCE56',
+                            borderWidth: 1
+                        }, {
+                            label: 'Other Income',
+                            data: [0, data.other_income],
+                            backgroundColor: '#4BC0C0',
+                            borderColor: '#4BC0C0',
+                            borderWidth: 1
+                        }]
                     },
                     options: {
                         responsive: true,
@@ -365,7 +346,9 @@
                 function updateDebtChart() {
                     const monthlyPayoff = parseFloat(document.getElementById('monthly-payment').value);
                     const payoffPeriod = parseInt(document.getElementById('payoff-period').value);
-                    const months = Array.from({ length: payoffPeriod }, (_, i) => `Month ${i + 1}`);
+                    const months = Array.from({
+                        length: payoffPeriod
+                    }, (_, i) => `Month ${i + 1}`);
                     const payoffData = [];
                     let currentBalance = data.debt_balance;
                     for (let i = 0; i < payoffPeriod; i++) {
@@ -383,7 +366,9 @@
                 const debtChart = new Chart(debtCtx, {
                     type: 'line',
                     data: {
-                        labels: Array.from({ length: 12 }, (_, i) => `Month ${i + 1}`),
+                        labels: Array.from({
+                            length: 12
+                        }, (_, i) => `Month ${i + 1}`),
                         datasets: [{
                             label: 'Payoff Over Time',
                             data: [],
@@ -433,117 +418,6 @@
                 document.getElementById('payoff-period').addEventListener('change', updateDebtChart);
 
             });
-
-        // Chatbot Functionality
-        const chatbotIcon = document.getElementById('chatbot-icon');
-        const chatbotContainer = document.getElementById('chatbot-container');
-        const sendButton = document.getElementById('send-button');
-        const messagesContainer = document.getElementById('chatbot-messages');
-        const inputField = document.getElementById('chatbot-input');
-        const userSearchInput = document.getElementById('user-search-input');
-        const userList = document.getElementById('user-list');
-
-        // Toggle chatbot visibility
-        chatbotIcon.addEventListener('click', function() {
-            chatbotContainer.style.display = chatbotContainer.style.display === 'block' ? 'none' : 'block';
-            inputField.focus(); // Focus on the input field when opened
-            userList.style.display = 'none'; // Hide user list when opened
-        });
-
-        // Function to add message to chat
-        function addMessage(message, sender) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = `${sender}: ${message}`;
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
-        }
-
-        // Handle send button click
-        sendButton.addEventListener('click', function() {
-            const userInput = inputField.value.trim();
-            if (userInput) {
-                addMessage(userInput, 'You');
-                inputField.value = ''; // Clear input field
-
-                // Simulate chatbot response (you can replace this with actual API call)
-                setTimeout(() => {
-                    addMessage('This is a simulated response from the chatbot!', 'Bot');
-                }, 1000);
-            }
-        });
-
-        // Handle enter key to send message
-        inputField.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendButton.click();
-            }
-        });
-
-        // Search for users
-        document.getElementById('search-user-button').addEventListener('click', function() {
-            const query = userSearchInput.value.trim();
-            // Call the API to fetch users based on the search query
-            fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(users => {
-                    userList.innerHTML = ''; // Clear previous results
-                    if (users.length > 0) {
-                        users.forEach(user => {
-                            const userElement = document.createElement('div');
-                            userElement.textContent = user.nickname; // Assuming each user has a 'name' property
-                            userElement.addEventListener('click', function() {
-                                inputField.value = `Message to ${user.name}: `;
-                                userList.style.display = 'none'; // Hide user list after selection
-                            });
-                            userList.appendChild(userElement);
-                        });
-                        userList.style.display = 'block'; // Show the user list
-                    } else {
-                        userList.style.display = 'none'; // Hide if no users found
-                    }
-                });
-        });
-
-        // Hide the user list if the input field is empty
-        // Search for users with debounce
-        let debounceTimer;
-
-        userSearchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const query = userSearchInput.value.trim();
-                if (query) {
-                    fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(users => {
-                            userList.innerHTML = ''; // Clear previous results
-                            if (users.length > 0) {
-                                users.forEach(user => {
-                                    const userElement = document.createElement('div');
-                                    userElement.textContent = user.nickname; // Use nickname correctly
-                                    userElement.addEventListener('click', function() {
-                                        inputField.value = `Message to ${user.nickname}: `;
-                                        userList.style.display = 'none'; // Hide user list after selection
-                                    });
-                                    userList.appendChild(userElement);
-                                });
-                                userList.style.display = 'block'; // Show the user list
-                            } else {
-                                userList.style.display = 'none'; // Hide if no users found
-                            }
-                        });
-                } else {
-                    userList.style.display = 'none'; // Hide if input is empty
-                }
-            }, 300); // Debounce timer
-        });
-
-        // Add Enter key functionality to the user search input
-        userSearchInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                document.getElementById('search-user-button').click(); // Clicks the search button
-            }
-        });
     </script>
 
 </body>

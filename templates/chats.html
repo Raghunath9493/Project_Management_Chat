@@ -1,157 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
     <link rel="stylesheet" href="/static/css/chat.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
-    <div class="chat-container">
-        <div class="chat-sidebar" id="chat-sidebar">
-            <input type="text" id="user-search-input" placeholder="Search users..." />
-            <button id="search-user-button">Search</button>
-            <div id="search-results">
-                <!-- Dynamically filled with search results -->
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="/static/images/wallet.png" alt="Personal Budget Logo">
+                <h1>Personal Budget</h1>
             </div>
-            <ul id="user-list">
-                <!-- Permanent list of messaged users -->
+            <ul class="nav-items">
+                <li><a href="{{ url_for('dashboard') }}" class="active">Budget Summary</a></li>
+                <li><a href="{{ url_for('budget_form') }}">Budget Form</a></li>
+                <li><a href="{{ url_for('transactions') }}">Transactions</a></li>
+                <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                <li><a href="{{ url_for('chats') }}">Chats</a></li>
             </ul>
         </div>
 
-        <div class="chat-main">
-            <div id="chat-messages">
-                <!-- Display chat messages here -->
+        <div class="content">
+            <div class="header">
+                <button id="sidebar-menu-button"><span class="menu-icon">☰</span></button>
+                <h2>Budget Summary</h2>
+                <div class="logout-button">
+                    <span id="user-nickname"></span>
+                    <button id="logout-btn">Logout</button>
+                </div>
             </div>
 
-            <div class="chat-input">
-                <input type="text" id="message-box" placeholder="Type a message" />
-                <button id="send-btn">Send</button>
-            </div>
-        </div>
-    </div>
+            <div class="chat-container">
+                <div class="chat-sidebar" id="chat-sidebar">
+                    <input type="text" id="user-search-input" placeholder="Search users..." />
+                    <button id="search-user-button">Search</button>
+                    <div id="search-results">
+                        <!-- Dynamically filled with search results -->
+                    </div>
+                    <ul id="user-list">
+                        <!-- Permanent list of messaged users -->
+                    </ul>
+                </div>
 
-    <script>
-        const userList = document.getElementById('user-list');
-        const searchResults = document.getElementById('search-results');
-        const chatMessages = document.getElementById('chat-messages');
-        const searchUserButton = document.getElementById('search-user-button');
-        const userSearchInput = document.getElementById('user-search-input');
-        const chatSidebar = document.getElementById('chat-sidebar');
-        
-        const loggedInUserEmail = "{{ session['email'] }}";
-        let currentChatEmail = '';
-        let messagedUsers = new Set(); // Use a Set to store unique messaged users
-    
-        // Function to add a user to the permanent sidebar list
-        function addUserToSidebar(email) {
-            if (!messagedUsers.has(email)) {
-                messagedUsers.add(email);
-    
-                const userElement = document.createElement('li');
-                userElement.textContent = email;
-                userElement.dataset.email = email;
-    
-                // Make each user clickable to open their chat
-                userElement.addEventListener('click', function () {
-                    currentChatEmail = email;
-                    chatMessages.innerHTML += `<p>Chat with: ${email}</p>`; // Display chat header
-                    loadMessages(email); // Load messages with this user
+                <div class="chat-main">
+                    <div id="chat-messages">
+                        <!-- Sent Message -->
+                        <div class="chat-message sent">
+                            Hey! How are you doing?
+                            <div class="timestamp">9:15 PM</div>
+                        </div>
+
+                        <!-- Received Message -->
+                        <div class="chat-message received">
+                            I’m doing great, thanks! What about you?
+                            <div class="timestamp">9:16 PM</div>
+                        </div>
+                    </div>
+
+
+                    <div class="chat-input">
+                        <input type="text" id="message-box" placeholder="Type a message" />
+                        <button id="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.getElementById('sidebar-menu-button').addEventListener('click', function() {
+                    const sidebar = document.querySelector('.sidebar');
+                    const content = document.querySelector('.content');
+
+                    sidebar.classList.toggle('active');
+                    content.classList.toggle('active');
                 });
-    
-                // Append the user to the permanent sidebar list
-                userList.appendChild(userElement);
-    
-                // Save the user on the server as a "messaged user"
-                fetch('/api/add_chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.message) {
-                        console.error(data.error);
+
+                // JavaScript for deleting messages
+                function deleteMessage(button) {
+                    const message = button.parentElement;
+                    if (confirm("Are you sure you want to delete this message?")) {
+                        message.remove();
                     }
-                })
-                .catch(error => console.error('Error:', error));
-            }
-        }
-    
-        // Search for users when typing in the search input with debounce
-        let debounceTimer;
-        userSearchInput.addEventListener('input', function () {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const query = userSearchInput.value.trim();
-                if (query) {
-                    fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
-                        .then(response => response.json())
-                        .then(users => {
-                            searchResults.innerHTML = ''; // Clear previous search results
-                            if (users.length > 0) {
-                                users.forEach(user => {
-                                    const userElement = document.createElement('div');
-                                    userElement.textContent = user.nickname;
-                                    userElement.addEventListener('click', function () {
-                                        userSearchInput.value = ''; // Clear search input
-                                        currentChatEmail = user.email; // Set the selected user's email for chat
-                                        searchResults.style.display = 'none'; // Hide search results
-
-                                        // Add the selected user to the permanent list
-                                        addUserToSidebar(user.email);
-                                    });
-                                    searchResults.appendChild(userElement);
-                                });
-                                searchResults.style.display = 'block'; // Show search results if matches found
-                            } else {
-                                searchResults.style.display = 'none';
-                            }
-                        })
-                        .catch(error => console.error('Error fetching users:', error));
-                } else {
-                    searchResults.style.display = 'none'; // Hide if no input
                 }
-            }, 300); // Debounce timer
-        });
-    
-        function loadMessages(email) {
-            fetch(`/api/get_messages?sender=${encodeURIComponent(loggedInUserEmail)}&recipient=${encodeURIComponent(email)}`)
-                .then(response => response.json())
-                .then(messages => {
-                    chatMessages.innerHTML = ''; // Clear previous messages
-                    messages.forEach(message => {
-                        chatMessages.innerHTML += `<p><strong>${message.sender}:</strong> ${message.content}</p>`;
-                    });
-                })
-                .catch(error => console.error('Error fetching messages:', error));
-        }
+            </script>
 
-    
-        // Sending messages
-        document.getElementById('send-btn').addEventListener('click', function () {
-            const message = document.getElementById('message-box').value;
-            if (message && currentChatEmail) {
-                fetch('/api/send_message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sender: loggedInUserEmail, recipient: currentChatEmail, message })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.message) {
-                            chatMessages.innerHTML += `<p>You: ${message}</p>`;
-                            document.getElementById('message-box').value = ''; // Clear input field
+            <script>
+                const userList = document.getElementById('user-list');
+                const searchResults = document.getElementById('search-results');
+                const chatMessages = document.getElementById('chat-messages');
+                const searchUserButton = document.getElementById('search-user-button');
+                const userSearchInput = document.getElementById('user-search-input');
+                const chatSidebar = document.getElementById('chat-sidebar');
+
+                const loggedInUserEmail = "{{ session['email'] }}";
+                let currentChatEmail = '';
+                let messagedUsers = new Set(); // Use a Set to store unique messaged users
+
+                // Function to add a user to the permanent sidebar list
+                function addUserToSidebar(email) {
+                    if (!messagedUsers.has(email)) {
+                        messagedUsers.add(email);
+
+                        const userElement = document.createElement('li');
+                        userElement.textContent = email;
+                        userElement.dataset.email = email;
+
+                        // Make each user clickable to open their chat
+                        userElement.addEventListener('click', function() {
+                            currentChatEmail = email;
+                            chatMessages.innerHTML += `<p>Chat with: ${email}</p>`; // Display chat header
+                            loadMessages(email); // Load messages with this user
+                        });
+
+                        // Append the user to the permanent sidebar list
+                        userList.appendChild(userElement);
+
+                        // Save the user on the server as a "messaged user"
+                        fetch('/api/add_chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    email
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.message) {
+                                    console.error(data.error);
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    }
+                }
+
+                // Search for users when typing in the search input with debounce
+                let debounceTimer;
+                userSearchInput.addEventListener('input', function() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        const query = userSearchInput.value.trim();
+                        if (query) {
+                            fetch(`/api/search_users?query=${encodeURIComponent(query)}`)
+                                .then(response => response.json())
+                                .then(users => {
+                                    searchResults.innerHTML = ''; // Clear previous search results
+                                    if (users.length > 0) {
+                                        users.forEach(user => {
+                                            const userElement = document.createElement('div');
+                                            userElement.textContent = user.nickname;
+                                            userElement.addEventListener('click', function() {
+                                                userSearchInput.value = ''; // Clear search input
+                                                currentChatEmail = user.email; // Set the selected user's email for chat
+                                                searchResults.style.display = 'none'; // Hide search results
+
+                                                // Add the selected user to the permanent list
+                                                addUserToSidebar(user.email);
+                                            });
+                                            searchResults.appendChild(userElement);
+                                        });
+                                        searchResults.style.display = 'block'; // Show search results if matches found
+                                    } else {
+                                        searchResults.style.display = 'none';
+                                    }
+                                })
+                                .catch(error => console.error('Error fetching users:', error));
                         } else {
-                            console.error(data.error);
+                            searchResults.style.display = 'none'; // Hide if no input
                         }
-                    })
-                    .catch(error => console.error('Error sending message:', error));
-            }
-        });
-    </script>
-    
+                    }, 300); // Debounce timer
+                });
+
+                function loadMessages(email) {
+                    fetch(`/api/get_messages?sender=${encodeURIComponent(loggedInUserEmail)}&recipient=${encodeURIComponent(email)}`)
+                        .then(response => response.json())
+                        .then(messages => {
+                            chatMessages.innerHTML = ''; // Clear previous messages
+                            messages.forEach(message => {
+                                const messageElement = document.createElement('div');
+                                messageElement.classList.add('message');
+
+                                // Check if the message is sent by the logged-in user or received
+                                if (message.sender === loggedInUserEmail) {
+                                    messageElement.classList.add('sent'); // Add the 'sent' class to align it to the right
+                                    messageElement.innerHTML = `
+                        <p><strong>You:</strong> ${message.content}</p>
+                    `;
+                                } else {
+                                    messageElement.classList.add('received'); // Add the 'received' class to align it to the left
+                                    messageElement.innerHTML = `
+                        <p><strong>${message.sender}:</strong> ${message.content}</p>
+                    `;
+                                }
+
+                                chatMessages.appendChild(messageElement);
+                            });
+                            chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the bottom
+                        })
+                        .catch(error => console.error('Error fetching messages:', error));
+                }
+
+                // Sending messages
+                document.getElementById('send-btn').addEventListener('click', function() {
+                    const message = document.getElementById('message-box').value;
+                    if (message && currentChatEmail) {
+                        fetch('/api/send_message', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    sender: loggedInUserEmail,
+                                    recipient: currentChatEmail,
+                                    message
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.message) {
+                                    const messageElement = document.createElement('div');
+                                    messageElement.classList.add('message', 'sent'); // Align sent messages to the right
+                                    messageElement.innerHTML = `<p><strong>You:</strong> ${message}</p>`;
+                                    chatMessages.appendChild(messageElement);
+                                    document.getElementById('message-box').value = ''; // Clear input field
+                                    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the bottom
+                                } else {
+                                    console.error(data.error);
+                                }
+                            })
+                            .catch(error => console.error('Error sending message:', error));
+                    }
+                });
+
+
+                const typingIndicator = document.createElement('p');
+                typingIndicator.textContent = 'User is typing...';
+                typingIndicator.id = 'typing-indicator';
+                chatMessages.appendChild(typingIndicator);
+
+                let typingTimeout;
+                const typingDelay = 1000; // 1 second
+
+                document.getElementById('message-box').addEventListener('input', () => {
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        fetch('/api/typing', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                sender: loggedInUserEmail,
+                                recipient: currentChatEmail
+                            })
+                        });
+                    }, typingDelay);
+                });
+            </script>
+
 </body>
+
 </html>
