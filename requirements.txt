@@ -14,3 +14,4 @@ pymongo
 pytest
 flask_socketio
 python-dotenv
+better-profanity==0.7.0

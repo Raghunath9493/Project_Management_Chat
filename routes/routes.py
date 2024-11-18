@@ -12,6 +12,8 @@ from datetime import timedelta, datetime
 import json
 from bson import ObjectId
 from database import save_messaged_user
+from better_profanity import profanity
+import logging
 
 def register_routes(app):
     bcrypt = Bcrypt(app)
@@ -356,42 +358,82 @@ def register_routes(app):
         return render_template('chats.html', users=user_details)
 
     
+    # Initialize logging
+    logging.basicConfig(level=logging.INFO)
+
+    # Load the default list of profane words
+    custom_harmful_words = ["bomb", "bombs", "drug", "drugs", "terrorist", "terrorists", "attack", "attacks", "weapon", "weapons"]
+    profanity.add_censor_words(custom_harmful_words)
+
     @app.route('/api/send_message', methods=['POST'])
     def send_message():
-        data = request.get_json()
-        sender_email = data['sender']
-        recipient_email = data['recipient']
-        message_content = data['message']
+        try:
+            data = request.json
+            sender = data.get('sender')
+            recipient = data.get('recipient')
+            content = data.get('message')
 
-        # Store the message in the database
-        db.messages.insert_one({
-            'sender': sender_email,
-            'recipient': recipient_email,
-            'content': message_content,
-            'timestamp': datetime.utcnow()  # Store the timestamp
-        })
+            if not sender or not recipient or not content:
+                return jsonify({'error': 'Sender, recipient, and message content are required'}), 400
 
-        return jsonify({'message': 'Message sent successfully'})
+            # Check if the message contains any profane or harmful words
+            if profanity.contains_profanity(content):
+                return jsonify({'error': 'Message contains prohibited content and cannot be sent'}), 403
+
+            # Save the message to the database if it does not contain profane words
+            db.messages.insert_one({
+                "sender": sender,
+                "recipient": recipient,
+                "content": content,
+                "timestamp": datetime.now()
+            })
+
+            return jsonify({'message': 'Message sent successfully'})
+        
+        except Exception as e:
+            # Log the error
+            logging.error(f"Error in send_message: {e}")
+            return jsonify({'error': 'An internal error occurred'}), 500
     
     @app.route('/api/get_messages', methods=['GET'])
     def get_messages():
+        logged_in_user = session.get('email')
+        if not logged_in_user:
+            return jsonify({'error': 'User not logged in'}), 401
+
         sender = request.args.get('sender')
         recipient = request.args.get('recipient')
 
         if not sender or not recipient:
-            return jsonify({'error': 'Both sender and recipient are required'}), 400
+            return jsonify({'error': 'Missing sender or recipient'}), 400
 
-        # Fetch messages where the sender and recipient are either the logged-in user or the selected user
-        messages = db.messages.find({
-            "$or": [
-                {"sender": sender, "recipient": recipient},
-                {"sender": recipient, "recipient": sender}
+        try:
+            # Query messages from MongoDB
+            user_messages = list(db.messages.find({
+                '$or': [
+                    {'sender': sender, 'recipient': recipient},
+                    {'sender': recipient, 'recipient': sender}
+                ]
+            }).sort('timestamp', 1))  # Sort by timestamp in ascending order
+
+            # Format messages for JSON response
+            formatted_messages = [
+                {
+                    '_id': str(message['_id']),
+                    'sender': message['sender'],
+                    'recipient': message['recipient'],
+                    'content': message['content'],
+                    'timestamp': message['timestamp']
+                }
+                for message in user_messages
             ]
-        }).sort("timestamp")
 
-        # Convert messages to JSON format
-        messages = [{"sender": msg["sender"], "content": msg["content"]} for msg in messages]
-        return jsonify(messages)
+            return jsonify(formatted_messages), 200
+
+        except Exception as e:
+            print(f"Error retrieving messages: {e}")
+            return jsonify({'error': 'Unable to retrieve messages'}), 500
+
 
 
     @app.route('/api/search_users', methods=['GET'])
@@ -413,19 +455,70 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": "An error occurred while searching for users", "details": str(e)}), 500
 
+    MESSAGED_USERS = {}  # Keep in-memory storage
+
     @app.route('/api/add_chat', methods=['POST'])
     def add_chat():
-        # Retrieve the email of the selected user from the request
-        data = request.json
-        selected_user_email = data.get('email')
-        
-        if not selected_user_email:
-            return jsonify({'error': 'No email provided'}), 400
-        
-        # Get the logged-in user's email from the session
-        current_user_email = session.get('email')
-        
-        # Save the messaged user relationship in MongoDB
-        save_messaged_user(current_user_email, selected_user_email)
-        
-        return jsonify({'message': 'User added to messaged list'}), 200
+        logged_in_user = session.get('email')
+        if not logged_in_user:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        data = request.get_json()
+        if not data or 'email' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+
+        email = data['email']
+
+        # Initialize messaged users for the logged-in user if not present
+        if logged_in_user not in MESSAGED_USERS:
+            MESSAGED_USERS[logged_in_user] = []
+
+        # Add the new user if not already in the list
+        if email not in [user['email'] for user in MESSAGED_USERS[logged_in_user]]:
+            MESSAGED_USERS[logged_in_user].append({'email': email})
+
+        return jsonify({'success': True}), 200
+
+
+    @app.route('/api/get_messaged_users', methods=['GET'])
+    def get_messaged_users():
+        logged_in_user = session.get('email')
+        if not logged_in_user:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        # Return the list of messaged users for the logged-in user
+        messaged_users = MESSAGED_USERS.get(logged_in_user, [])
+        return jsonify(messaged_users), 200
+   
+    
+    @app.route('/api/delete_message', methods=['DELETE'])
+    def delete_message():
+        logged_in_user = session.get('email')
+        if not logged_in_user:
+            return jsonify({'error': 'User not logged in'}), 401
+
+        data = request.get_json()
+        if not data or 'id' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+
+        try:
+            message_id = data['id']
+
+            # Ensure the ID is a valid ObjectId
+            if not ObjectId.is_valid(message_id):
+                return jsonify({'error': 'Invalid message ID'}), 400
+
+            # Delete the message if the sender matches the logged-in user
+            result = db.messages.delete_one({
+                '_id': ObjectId(message_id),
+                'sender': logged_in_user
+            })
+
+            if result.deleted_count == 1:
+                return jsonify({'success': True}), 200
+            else:
+                return jsonify({'error': 'Message not found or not authorized'}), 404
+
+        except Exception as e:
+            print(f"Error deleting message: {e}")
+            return jsonify({'error': 'Failed to delete the message'}), 500
