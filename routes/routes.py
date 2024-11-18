@@ -215,22 +215,34 @@ def register_routes(app):
 
     @app.route('/get_transactions', methods=['GET'])
     def get_transactions():
-        if 'email' not in session:
-            return redirect(url_for('home'))
+        logged_in_user = session.get('email')  # Get the logged-in user
+        if not logged_in_user:
+            return jsonify({'error': 'User not logged in'}), 401
 
-        email = session['email']
-        transactions = db.transactions.find({"email": email})
-        transaction_list = []
-        for transaction in transactions:
-            transaction_list.append({
-                "event_name": transaction['event_name'],
-                "event_date": transaction['event_date'],
-                "category": transaction['category'],
-                "description": transaction['description'],
-                "price": transaction['price']
-            })
+        try:
+            # Fetch transactions from the database for the logged-in user
+            user_transactions = list(db.transactions.find({'email': logged_in_user}))
+            
+            # Calculate the total amount
+            total_amount = sum(transaction['price'] for transaction in user_transactions)
 
-        return jsonify(transaction_list)
+            # Format transactions for the frontend
+            formatted_transactions = [
+                {
+                    '_id': str(transaction['_id']),  # Convert ObjectId to string
+                    'event_name': transaction['event_name'],
+                    'event_date': transaction['event_date'],
+                    'category': transaction['category'],
+                    'description': transaction.get('description', ''),  # Optional field
+                    'price': transaction['price']
+                }
+                for transaction in user_transactions
+            ]
+
+            return jsonify({'transactions': formatted_transactions, 'total': total_amount}), 200
+        except Exception as e:
+            print(f"Error fetching transactions: {e}")
+            return jsonify({'error': 'Unable to fetch transactions'}), 500
 
     # @app.route('/forgot_password', methods=['POST'])
     # def forgot_password():
